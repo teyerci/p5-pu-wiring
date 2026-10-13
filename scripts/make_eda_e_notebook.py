@@ -26,7 +26,10 @@ items = [
     ("E4", "How complete is each neuron's record (FAFB supplement; the plan's E4 is malecns)",
      "F.fig_e4_fafb(neurons, edges, pd.read_feather(raw_file('neuropil_post')))", None),
     ("E5", "Does an edge recur on the other side (D10)", "F.fig_e5(neurons, edges)",
-     "display(pd.concat(tabs, axis=1).round(3))"),
+     "display(pd.concat(tabs, axis=1).round(3))\n"
+     "from src.eda_e import e5_by_type_size, e5_restricted\n"
+     "display(e5_by_type_size(neurons, edges))  # recurrence rises with type size\n"
+     "display(e5_restricted(neurons, edges))    # restricting the type set barely moves it"),
     ("E6", "Does an edge recur in another animal", None, None),
     ("E7", "Central complex profile", "F.fig_e7(neurons, edges)", None),
 ]

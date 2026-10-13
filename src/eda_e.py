@@ -203,6 +203,57 @@ def e5_compute(neurons, edges):
     return out, stats
 
 
+def e5_by_type_size(neurons, edges, population="central"):
+    """E5 recurrence split by type size: the smaller of the two types' per-side neuron counts.
+
+    A type edge between one-neuron-per-side types is a single neuron pair, so its
+    chance of recurring is lower than for large types, where many neuron pairs
+    stand behind the same type edge. Type pairs where a type is missing on one
+    side (min side count 0) are reported in their own row.
+    """
+    ids = population_ids(flags(neurons), population)
+    tl = type_level_edges(neurons, edges, ids)
+    nt = neurons[neurons["cell_type"].notna() & neurons["side"].isin(["left", "right"])
+                 & neurons["neuron_id"].isin(ids)]
+    cnt = nt.groupby(["cell_type", "side"], observed=True).size().unstack(fill_value=0)[["left", "right"]]
+    size = cnt.min(axis=1)
+    a, b = tl.index.get_level_values(0), tl.index.get_level_values(1)
+    pair_size = np.minimum(size.reindex(a).to_numpy(), size.reindex(b).to_numpy())
+    rows = {}
+    for lo, hi, label in [(0, 0, "min side count 0"), (1, 1, "min side count 1"), (2, 4, "2–4"),
+                          (5, 19, "5–19"), (20, np.inf, "20+")]:
+        sub = tl[(pair_size >= lo) & (pair_size <= hi)]
+        lr = recurrence_by_bin(sub["left"], sub["right"])
+        rl = recurrence_by_bin(sub["right"], sub["left"])
+        rows[label] = {"type_pairs": int(len(sub)), **((lr["mean"] + rl["mean"]) / 2).round(3).to_dict()}
+    return pd.DataFrame(rows).T.astype({"type_pairs": int})
+
+
+def e5_restricted(neurons, edges, population="central"):
+    """E5 recurrence on restricted type sets: both types present on both sides,
+    equal left/right counts, and both types hemibrain-matched (plus present on both sides)."""
+    ids = population_ids(flags(neurons), population)
+    tl = type_level_edges(neurons, edges, ids)
+    nt = neurons[neurons["cell_type"].notna() & neurons["side"].isin(["left", "right"])
+                 & neurons["neuron_id"].isin(ids)]
+    cnt = nt.groupby(["cell_type", "side"], observed=True).size().unstack(fill_value=0)[["left", "right"]]
+    both = cnt.index[(cnt["left"] > 0) & (cnt["right"] > 0)]
+    equal = cnt.index[(cnt["left"] == cnt["right"]) & (cnt["left"] > 0)]
+    matched = pd.Index(neurons.loc[neurons["hemibrain_type"].notna(), "cell_type"].dropna().unique())
+    a, b = tl.index.get_level_values(0), tl.index.get_level_values(1)
+    masks = {"all types": np.ones(len(tl), bool),
+             "both types on both sides": a.isin(both) & b.isin(both),
+             "equal left/right counts": a.isin(equal) & b.isin(equal),
+             "hemibrain-matched, both sides": a.isin(both) & b.isin(both) & a.isin(matched) & b.isin(matched)}
+    rows = {}
+    for label, m in masks.items():
+        sub = tl[m]
+        lr = recurrence_by_bin(sub["left"], sub["right"])
+        rl = recurrence_by_bin(sub["right"], sub["left"])
+        rows[label] = {"type_pairs": int(len(sub)), **((lr["mean"] + rl["mean"]) / 2).round(3).to_dict()}
+    return pd.DataFrame(rows).T.astype({"type_pairs": int})
+
+
 # --------------------------------------------------------------------------- E7
 def e7_compute(neurons, edges, tau=5):
     cx = neurons[neurons["region"].isin(CX_NEUROPILS)].copy()
