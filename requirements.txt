@@ -13,3 +13,5 @@ jupyter
 nbformat
 nbconvert
 ipykernel
+python-docx
+pypandoc_binary
