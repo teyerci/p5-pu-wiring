@@ -1,0 +1,55 @@
+{
+ "E1": {
+  "neurons": 45168,
+  "no_synapses": 318,
+  "median_top_share": 0.5601480919796453,
+  "gap_below_0.10": 11268,
+  "gap_below_0.10_pct": 24.946865037194474
+ },
+ "E2": {
+  "neurons": 139262,
+  "clean central": 42100,
+  "ambiguous": 5947,
+  "clean optic": 90588,
+  "no synapses": 627,
+  "optic_by_super_class_pct": 55.679941405408506,
+  "optic_by_region_flag_pct": 67.33782367049159,
+  "optic_by_synapse_share_pct": 65.04861340494894,
+  "ambiguous_pct": 4.270368083181342
+ },
+ "E3": {
+  "regions": 38,
+  "within_region_share": 0.5938392332902658,
+  "synapses": 13378205
+ },
+ "E4": {
+  "neurons": 45109,
+  "median_ratio": 0.9516129032258065,
+  "pooled_ratio": 0.9508321025098919,
+  "over_1": 0
+ },
+ "E5": {
+  "central": {
+   "type_pairs": 1656860,
+   "share_1syn": 0.3151210402960113,
+   "share_10plus": 0.9622144006192774
+  },
+  "optic": {
+   "type_pairs": 87960,
+   "share_1syn": 0.4606385474854796,
+   "share_10plus": 0.9744367417677643
+  }
+ },
+ "E7": {
+  "neurons_region_cx": 2617,
+  "neurons_cell_class_cx": 2875,
+  "overlap": 2560,
+  "cell_types": 223,
+  "untyped": 10,
+  "types_with_8_to_16_per_side": 39,
+  "types_one_per_side": 63,
+  "edges_at_tau": 66982,
+  "columnar_block_fill_median": 0.02976190476190476,
+  "columnar_connected_type_pairs": 369
+ }
+}
