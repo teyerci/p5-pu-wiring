@@ -322,6 +322,93 @@ def e5_restricted(neurons, edges, population="central"):
     return pd.DataFrame(rows).T.astype({"type_pairs": int})
 
 
+# --------------------------------------------------------------------------- E6
+def match_groups(*value_series) -> dict:
+    """Type name -> match group. A compound value such as "A,B" (one type matching the
+    union of several on the other side) joins its names; groups sharing a name merge."""
+    parent = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for values in value_series:
+        for v in pd.Series(values).dropna().unique():
+            parts = [p.strip() for p in str(v).split(",") if p.strip()]
+            for p in parts[1:]:
+                ra, rb = find(parts[0]), find(p)
+                if ra != rb:
+                    parent[max(ra, rb)] = min(ra, rb)
+            find(parts[0])
+    members = {}
+    for x in parent:
+        members.setdefault(find(x), []).append(x)
+    label = {root: ",".join(sorted(m)) for root, m in members.items()}
+    return {x: label[find(x)] for x in parent}
+
+
+def group_key(values: pd.Series, groups: dict) -> pd.Series:
+    first = values.astype("string").str.split(",").str[0].str.strip()
+    return first.map(groups)
+
+
+def keyed_type_edges(neurons, edges, key: pd.Series) -> pd.Series:
+    """Type-level edge weights between match groups: sum of syn_count over edges whose
+    neurons both carry a key (`key` indexed like `neurons`)."""
+    k = pd.Series(key.to_numpy(), index=neurons["neuron_id"].to_numpy()).dropna()
+    e = edges[edges["pre_id"].isin(k.index) & edges["post_id"].isin(k.index)]
+    df = pd.DataFrame({"A": k.reindex(e["pre_id"]).to_numpy(), "B": k.reindex(e["post_id"]).to_numpy(),
+                       "w": e["syn_count"].astype("int64").to_numpy()})
+    return df.groupby(["A", "B"])["w"].sum()
+
+
+def _e6_side(neurons, key_values, groups, matched, regions, population, side):
+    fl = flags(neurons)
+    key = group_key(key_values, groups)
+    keep = ((fl["side"] == side) & fl["neuropil"].isin(regions) & key.isin(matched)
+            & fl["neuron_id"].isin(population_ids(fl, population)))
+    return neurons[keep.to_numpy()], key[keep.to_numpy()]
+
+
+def e6_compare(a, b, population="central", side="right"):
+    """E5's recurrence curve between two copies, for matched types in shared regions.
+
+    a, b: (neurons, edges, key_values), key_values aligned with neurons: the column
+    that names the shared type (fafb cell_type vs malecns flywire_type; fafb
+    hemibrain_type vs hemibrain cell_type). Only `side` neurons, the population, and
+    neurons whose region (base neuropil) has neurons in both copies are used.
+    Averaged over both directions, as in E5.
+    """
+    (na, ea, va), (nb, eb, vb) = a, b
+    groups = match_groups(va, vb)
+    matched = set(group_key(va, groups).dropna()) & set(group_key(vb, groups).dropna())
+    regions = (set(flags(na)["neuropil"]) & set(flags(nb)["neuropil"])) - {"unknown", "nerve_cord"}
+    na_, ka = _e6_side(na, va, groups, matched, regions, population, side)
+    nb_, kb = _e6_side(nb, vb, groups, matched, regions, population, side)
+    wa, wb = keyed_type_edges(na_, ea, ka), keyed_type_edges(nb_, eb, kb)
+    idx = wa.index.union(wb.index)
+    wa, wb = wa.reindex(idx, fill_value=0), wb.reindex(idx, fill_value=0)
+    ab, ba = recurrence_by_bin(wa, wb), recurrence_by_bin(wb, wa)
+    res = pd.DataFrame({"share": (ab["mean"] + ba["mean"]) / 2, "a_to_b": ab["mean"], "b_to_a": ba["mean"],
+                        "pairs_a": ab["size"], "pairs_b": ba["size"]})
+    hi = ["10–19", "20–49", "50+"]
+    stats = {
+        "match_groups": len(matched), "regions": len(regions),
+        "neurons_a": int(len(na_)), "neurons_b": int(len(nb_)),
+        "type_pairs": int(len(idx)),
+        "share_1syn": float(res.loc["1", "share"]),
+        "share_10plus": float(((ab.loc[hi, "mean"] * ab.loc[hi, "size"]).sum() + (ba.loc[hi, "mean"] * ba.loc[hi, "size"]).sum())
+                              / (ab.loc[hi, "size"].sum() + ba.loc[hi, "size"].sum())),
+        "share_10_19": float(res.loc["10–19", "share"]),
+        "a_to_b_10_19": float(res.loc["10–19", "a_to_b"]),
+        "b_to_a_10_19": float(res.loc["10–19", "b_to_a"]),
+    }
+    return res, stats, {"matched": matched, "regions": regions, "groups": groups}
+
+
 # --------------------------------------------------------------------------- E7
 def e7_compute(neurons, edges, tau=5):
     cx = neurons[neurons["region"].isin(CX_NEUROPILS)].copy()

@@ -89,6 +89,53 @@
    "share_10plus": 0.9572361017330633
   }
  },
+ "E6": {
+  "fafb vs malecns": {
+   "match_groups": 7294,
+   "regions": 40,
+   "neurons_a": 19102,
+   "neurons_b": 19116,
+   "type_pairs": 1504387,
+   "share_1syn": 0.3117959009101313,
+   "share_10plus": 0.9059288140137636,
+   "share_10_19": 0.8713521282663179,
+   "a_to_b_10_19": 0.9038012128383375,
+   "b_to_a_10_19": 0.8389030436942985
+  },
+  "fafb vs hemibrain": {
+   "match_groups": 3909,
+   "regions": 36,
+   "neurons_a": 12254,
+   "neurons_b": 13047,
+   "type_pairs": 795652,
+   "share_1syn": 0.3266781538860757,
+   "share_10plus": 0.9187122324263426,
+   "share_10_19": 0.894789539730269,
+   "a_to_b_10_19": 0.9262505344164172,
+   "b_to_a_10_19": 0.8633285450441207
+  },
+  "fafb vs malecns, hemibrain-matched types": {
+   "match_groups": 3980,
+   "regions": 39,
+   "neurons_a": 11170,
+   "neurons_b": 11397,
+   "type_pairs": 734751,
+   "share_1syn": 0.3215740727875699,
+   "share_10plus": 0.9310327567988432,
+   "share_10_19": 0.8985368419642694,
+   "a_to_b_10_19": 0.9370465088616629,
+   "b_to_a_10_19": 0.8600271750668761
+  },
+  "fafb left vs right": {
+   "share_1syn": 0.3151210402960113,
+   "share_10_19": 0.9411106164069198
+  },
+  "hemibrain_cropped_estimate": {
+   "typed_neurons": 16054,
+   "not_in_uncropped": 344,
+   "share": 0.021427681574685435
+  }
+ },
  "E7a": {
   "fafb": {
    "PB": 100,

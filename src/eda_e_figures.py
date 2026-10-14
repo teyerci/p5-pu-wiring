@@ -208,6 +208,62 @@ def fig_e5(neurons, edges, ds="fafb", release="783", item="E5", note=""):
     return [p], st, res
 
 
+# ------------------------------------------------------------------------ E6
+def fig_e6(fafb, malecns, hemibrain, cropped=None):
+    """fafb, malecns, hemibrain: (release, neurons, edges). One line per comparison:
+    fafb left vs right (E5, central), fafb vs malecns and fafb vs hemibrain (right side,
+    matched types, shared regions, central). `cropped`: fetch_hemibrain.cropped_typed_share."""
+    (rf, nf, ef), (rm, nm, em), (rh, nh, eh) = fafb, malecns, hemibrain
+    e5, _ = E.e5_compute(nf, ef)
+    curves = {"fafb left vs right": e5["central"]}
+    stats, info = {}, {}
+    for label, other, key_f, key_o in [(f"fafb vs malecns", (nm, em), "cell_type", "flywire_type"),
+                                       (f"fafb vs hemibrain", (nh, eh), "hemibrain_type", "cell_type")]:
+        res, st, inf = E.e6_compare((nf, ef, nf[key_f]), (*other, other[0][key_o]))
+        curves[label], stats[label], info[label] = res, st, inf
+    # the two between-animal comparisons use different fafb type sets; rerun fafb vs malecns on the
+    # fafb neurons whose hemibrain group was matched, so the male-female and female-female curves share types
+    ih = info["fafb vs hemibrain"]
+    on_hb = E.group_key(nf["hemibrain_type"], ih["groups"]).isin(ih["matched"]).to_numpy()
+    nf_h = nf[on_hb]
+    res_c, st_c, _ = E.e6_compare((nf_h, ef, nf_h["cell_type"]), (nm, em, nm["flywire_type"]))
+    stats["fafb vs malecns, hemibrain-matched types"] = st_c
+    curves["fafb vs malecns, hemibrain-matched types"] = res_c
+    stats["fafb left vs right"] = {"share_1syn": float(e5["central"].loc["1", "share"]),
+                                   "share_10_19": float(e5["central"].loc["10–19", "share"])}
+    if cropped is not None:
+        stats["hemibrain_cropped_estimate"] = cropped(info["fafb vs hemibrain"]["matched"])
+    fig, ax = plt.subplots(figsize=(8.5, 4.4))
+    x = np.arange(len(E.WEIGHT_BINS))
+    shown = ["fafb left vs right", "fafb vs malecns", "fafb vs hemibrain"]
+    for label, c, mk in zip(shown, [MUTED, SERIES[1], SERIES[0]], ["o", "D", "s"]):
+        res = curves[label]
+        ax.plot(x, res["share"], color=c, marker=mk, markersize=7, label=label,
+                markeredgecolor="white", markeredgewidth=1.5)
+    ax.axhline(0.9, color=INK_2, lw=1, ls="--")
+    ax.axvline([b[2] for b in E.WEIGHT_BINS].index("10–19"), color=MUTED, lw=1, ls=":")
+    ax.set_xticks(x, [b[2] for b in E.WEIGHT_BINS])
+    ax.set(xlabel="Type-level edge weight in one copy (synapses)", ylabel="Share found in the other copy",
+           ylim=(0, 1.02), xlim=(-0.3, len(x) - 0.4))
+    ax.legend(loc="lower right")
+    m, h = stats["fafb vs malecns"], stats["fafb vs hemibrain"]
+    extra = ""
+    if cropped is not None:
+        ce = stats["hemibrain_cropped_estimate"]
+        extra = (f" Hemibrain cropped neurons removed; up to {ce['share']:.0%} of typed neurons of the matched types "
+                 "are cropped or not Traced (estimate from the public exports).")
+    p = finish(fig, "E6_fafb-malecns-hemibrain_central_min1",
+               f"Between animals, 10–19-synapse type edges recur {h['share_10_19']:.0%} (female–female) and "
+               f"{m['share_10_19']:.0%} (female–male), against {stats['fafb left vs right']['share_10_19']:.0%} within fafb",
+               f"Datasets fafb {rf}, malecns {rm} (brain part), hemibrain {rh} (the plan pins v1.2.1; public v1.2 used); "
+               "threshold τ = 1; population: central. Between copies: right side, matched types (fafb cell_type ↔ "
+               "malecns flywire_type; fafb hemibrain_type ↔ hemibrain type; compound values merged into match groups), "
+               f"neurons in regions present in both ({m['regions']} and {h['regions']} regions); averaged over both "
+               "directions. fafb left vs right is E5's central curve (all types). Hemibrain side: instance token, else "
+               "region side." + extra)
+    return [p], stats, curves
+
+
 # ------------------------------------------------------------------------ E7
 def fig_e7a(data):
     """data: {ds: (release, neurons)}; neurons per CX neuropil, one bar per dataset."""

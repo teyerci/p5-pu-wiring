@@ -11,7 +11,7 @@ cells = [
        "fafb (783) and malecns (v1.0). As the plan's Definitions say, malecns means its brain part: "
        "neurons with `in_brain`, the edges among them and, in edgeroi, brain neuropils only. "
        "The nerve-cord list passed to `add_provisional_flags` is provisional (`src/eda_e.py`, "
-       "`MALECNS_NERVE_CORD`). E6 is pending: it needs the hemibrain."),
+       "`MALECNS_NERVE_CORD`). E6 uses the public hemibrain v1.2 export (the plan pins v1.2.1)."),
     code('import sys, json, warnings\nfrom pathlib import Path\n'
          'ROOT = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "config.py").exists())\n'
          'sys.path.insert(0, str(ROOT))\nwarnings.filterwarnings("ignore", category=FutureWarning)'),
@@ -60,7 +60,15 @@ items = [
         "            note='Supplement: the plan specifies E5 for fafb. ' + F.BRAIN_NOTE['malecns']))\n"
         "display(pd.concat(tabs, axis=1).round(3))\n"
         "display(e5_by_type_size(mal[0], mal[1]))"]),
-    ("E6", "Does an edge recur in another animal", None),
+    ("E6", "Does an edge recur in another animal", [
+        "# Hemibrain: public v1.2 export of non-cropped Traced neurons (the plan pins v1.2.1; see README).\n"
+        "from src import fetch_hemibrain\n"
+        "hemi = (fetch_hemibrain.load_neurons(), fetch_hemibrain.load_edges())\n\n"
+        "def cropped(groups):\n"
+        "    names = {t for g in groups for t in g.split(',')}\n"
+        "    return fetch_hemibrain.cropped_typed_share(names)\n\n"
+        "curves = show('E6', F.fig_e6(('783', fafb[0], fafb[1]), ('v1.0', mal[0], mal[1]), ('v1.2', *hemi), cropped))\n"
+        "display(pd.concat(curves, axis=1).round(3))"]),
     ("E7", "Central complex profile", [
         "show('E7a', F.fig_e7a({'fafb': ('783', fafb[0]), 'malecns': ('v1.0', mal[0])}));",
         "show('E7_fafb', F.fig_e7(fafb[0], fafb[1], FAFB_COLUMNAR));",
@@ -69,7 +77,6 @@ items = [
 for key, title, calls in items:
     cells.append(md(f"## {key}. {title}"))
     if calls is None:
-        cells.append(md("Pending: needs the hemibrain v1.2.1 (bulk files or a neuPrint token)."))
         continue
     cells.extend(code(c) for c in calls)
 cells.append(code("(ROOT / 'reports' / 'eda_E_stats.json').write_text(json.dumps(STATS, indent=1, default=float))"))

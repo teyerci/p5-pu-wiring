@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 122 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 128 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -36,7 +36,7 @@ data/raw/  data/cache/ gitignored
 |---|---|---|
 | FAFB | materialisation 783, flywire_annotations v3.2.0, Buhmann synapses | Zenodo 10676866 (v783.0) bulk files; annotations from the v3.2.0 tag |
 | MaleCNS | male-cns:v1.0, Traced, synapse confidence ≥ 0.5 | Janelia's public flat-connectome files for v1.0 (male-cns.janelia.org/download, `minconf-0.5` files); no token needed. Addresses in `src/paths.py` |
-| Hemibrain | v1.2.1 | not fetched by default; needed for EDA item E6 and H4 |
+| Hemibrain | v1.2.1 pinned by the EDA plan; **v1.2 used** | Janelia's public v1.2 export of non-cropped Traced neurons (`exported-traced-adjacencies-v1.2`); v1.2.1 is only in neuPrint (token). Used in E6. See project decisions |
 
 ## Schema
 
@@ -49,6 +49,9 @@ data/cache/fafb_edgeroi_783_buhmann_min1.parquet
 data/cache/malecns_neurons_v1.0_traced.parquet
 data/cache/malecns_edges_v1.0_traced_min1_conf0.5.parquet
 data/cache/malecns_edgeroi_v1.0_traced_min1_conf0.5.parquet
+data/cache/hemibrain_neurons_v1.2_traced-uncropped.parquet
+data/cache/hemibrain_edges_v1.2_traced-uncropped_min1.parquet
+data/cache/hemibrain_edgeroi_v1.2_traced-uncropped_min1.parquet
 ```
 
 ### FAFB source mapping (checked against the pinned files)
@@ -89,6 +92,10 @@ Files: `body-annotations` (annotations), `body-neurotransmitters`, `body-stats` 
 | nt_known | neurotransmitter file `ground_truth` | verbatim; set for 83,496 Traced neurons |
 | pre_id / post_id / syn_count | `connectome-weights` `body_pre` / `body_post` / `weight` | already summed over neuropils; both ends Traced; self-connections dropped |
 | edgeroi neuropil / syn_count | `syn-partners` grouped by (pre, post, `primary_post`) | every connection kept, so per-pair sums equal `syn_count` (checked on all 25,563,096 pairs); `unspecified` labels kept verbatim |
+
+### Hemibrain (E6 only)
+
+`src/fetch_hemibrain.py` builds the three tables from the public v1.2 export (46 MB; about 10 s): 21,739 non-cropped Traced neurons, 3,550,403 edges (14,329,229 synapses, no self-connections), 4,259,624 edge-ROI rows whose per-pair sums equal the edges. The export has only `bodyId`, `type` and `instance`, so: `cell_type` and `hemibrain_type` = `type`; `side` from the last `_R`/`_L` token of the instance (`EPG(PB08)_R4`, `PFNv(PB05)_L4_C7`; for central-complex columnar types the protocerebral-bridge half, assumed to be the soma side), else from the region's side (`LO(R)`), else unknown: right 18,117, left 2,992, unknown 630; `region` = the primary ROI with most synapses with partners in the export, that is non-cropped Traced neurons (`NotPrimary` ignored; 5 unknown; every name is accepted by `eda_shared`); `status` Traced; everything else unknown or missing. `NotPrimary` edge-ROI rows are kept as `UNASGD`.
 
 ## Counts and timings (FAFB)
 
@@ -139,6 +146,7 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 
 ## Project-specific decisions (deviations are stated, not configured)
 
+- **Hemibrain release:** the EDA plan pins v1.2.1, which needs a neuPrint token; the public v1.2 export is used until one is available. Effects: 87% of fafb's distinct `hemibrain_type` values are found among v1.2 types (some misses, such as `PI1` or `PAM06`, look like v1.2.1 renames), and the cropped share can only be bounded (≤ 2.1% of typed neurons of the matched types; per matched type rather than per region as the plan asks), not read from neuPrint's `cropped` flag. Switching to v1.2.1 means a new fetch module reading neuPrint; E6 code does not change.
 - **Roster:** the central complex roster is `cell_class == "CX"` (2,875 neurons, 229 types). This is annotation-based, not synapse-based, so the label does not define the population.
 - **Threshold:** the course default is τ = 10. A pair recorded with 1–9 synapses is **unlabelled**, because under the label definition its true count may still be ≥ 10. That gives 257,763 such pairs in the roster, against 32,125 positives at τ = 10.
 
@@ -147,3 +155,4 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 - 2026-10-13: repository created; FAFB cache built and validated; MaleCNS pending.
 - 2026-10-14: MaleCNS v1.0 cache built from Janelia's public bulk files and validated; course counts reproduced. `recode` and `_cast` shared between the two fetch modules.
 - 2026-10-14: EDA workstream E run on malecns as well (brain part; E4 with all Traced partners); E2, E3 and E7a now compare both datasets in one figure. E6 waits on the hemibrain. Summary in `reports/eda_E.md`.
+- 2026-10-14: hemibrain v1.2 cache (public export) and EDA item E6.
