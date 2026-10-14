@@ -455,16 +455,60 @@ def payload_mentions_git(raw: str) -> bool:
         return True
 
 
+# File tools and the input field naming the file each one writes.
+FILE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
+
+
+def judge_file_tool(data: dict) -> int:
+    """A file tool may not write inside a `.git` directory (the approval state lives there), judged on
+    the path as given and with symlinks resolved. What it writes is not inspected. A malformed payload
+    or any failure while judging refuses."""
+    tool = data["tool_name"]
+    try:
+        tool_input, cwd = data.get("tool_input"), data.get("cwd")
+        path = tool_input.get(FILE_TOOLS[tool]) if isinstance(tool_input, dict) else None
+        if not isinstance(path, str) or not path or "\0" in path:
+            return deny(f"Review gate: cannot read the file path of this {tool} call.")
+        p = Path(path)
+        if not p.is_absolute():
+            if not (isinstance(cwd, str) and cwd):
+                return deny(f"Review gate: {tool} gives a relative path and no working directory.")
+            p = Path(cwd) / p
+        if ".git" in p.parts or ".git" in Path(os.path.realpath(p)).parts:
+            return deny(f"Review gate: {tool} may not write inside a .git directory ({path}); the approval "
+                        "state there is written only by review_gate.py.")
+        return 0
+    except BaseException as e:
+        return deny(f"Review gate: the {tool} path could not be checked ({type(e).__name__}); refusing to be safe.")
+
+
+def payload_is_file_tool(raw: str) -> bool:
+    """The payload names a file tool (parsed, or by its raw `"tool_name"` field). Errs towards True."""
+    try:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, dict) and data.get("tool_name") in FILE_TOOLS:
+                return True
+        except (ValueError, RecursionError):
+            pass
+        return re.search(r'"tool_name"\s*:\s*"(?:%s)"' % "|".join(FILE_TOOLS), raw) is not None
+    except BaseException:
+        return True
+
+
 def cmd_hook(raw: str) -> int:
     try:
         data = json.loads(raw)
+        if isinstance(data, dict) and data.get("tool_name") in FILE_TOOLS:
+            return judge_file_tool(data)
         command = data["tool_input"]["command"]
         if not isinstance(command, str) or ("cwd" in data and not (isinstance(data["cwd"], str) and data["cwd"])):
             raise TypeError                        # a malformed cwd must not fall back to the hook's own directory
         cwd = Path(data.get("cwd", "."))
     except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
         # Unreadable payload: refuse what might touch git, let everything else run.
-        return deny("Review gate: could not read the hook payload.") if payload_mentions_git(raw) else 0
+        return deny("Review gate: could not read the hook payload.") \
+            if payload_mentions_git(raw) or payload_is_file_tool(raw) else 0
     if not mentions_git(command):
         return 0                                   # mentions neither git nor commit
     how = ("Commit on its own as `[cd /ABSOLUTE/DIR &&] git [-C DIR] commit [message options]`; for a "
@@ -516,7 +560,7 @@ def main() -> int:
             raw = sys.stdin.buffer.read().decode("utf-8", "replace")
             return cmd_hook(raw)
         except BaseException as e:                     # any failure, even an interrupt: refuse what touches git
-            touches = not raw or payload_mentions_git(raw)
+            touches = not raw or payload_mentions_git(raw) or payload_is_file_tool(raw)
             if touches:
                 return deny(f"Review gate: the hook failed ({type(e).__name__}); refusing to be safe.")
             return 0

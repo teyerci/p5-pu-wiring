@@ -430,6 +430,80 @@ def test_failure_fallback_classifies_the_decoded_command(repo, monkeypatch, caps
     assert out["permissionDecision"] == "deny" and "hook failed" in out["permissionDecisionReason"]
 
 
+def file_hook(tool: str, tool_input: dict, cwd) -> str:
+    payload = {"tool_name": tool, "tool_input": tool_input}
+    if cwd is not None:
+        payload["cwd"] = str(cwd)
+    r = subprocess.run([sys.executable, str(GATE), "hook"], input=json.dumps(payload),
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    if not r.stdout.strip():
+        return "allow"
+    assert json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+    return "deny"
+
+
+def test_file_tools_may_not_write_inside_git(repo, tmp_path):
+    (repo / ".git" / "review").mkdir(exist_ok=True)
+    (tmp_path / "state-link").symlink_to(repo / ".git" / "review", target_is_directory=True)
+    approved = repo / ".git" / "review" / "approved"
+    for tool, key in [("Write", "file_path"), ("Edit", "file_path"), ("MultiEdit", "file_path"),
+                      ("NotebookEdit", "notebook_path")]:
+        assert file_hook(tool, {key: str(approved), "content": "x"}, repo) == "deny", tool
+    assert file_hook("Write", {"file_path": ".git/review/approved", "content": "x"}, repo) == "deny"
+    assert file_hook("Write", {"file_path": "objects/../review/approved"}, repo / ".git") == "deny"
+    assert file_hook("Write", {"file_path": str(tmp_path / "state-link" / "approved")}, tmp_path) == "deny"
+    assert file_hook("Edit", {"file_path": str(repo / ".git" / "config")}, repo) == "deny"
+    # ordinary files pass, whatever their content says
+    assert file_hook("Write", {"file_path": str(repo / "notes.md"), "content": "git commit -a"}, repo) == "allow"
+    assert file_hook("Edit", {"file_path": "scripts/review_gate.py", "old_string": "a", "new_string": "b"},
+                     repo) == "allow"
+    assert file_hook("Write", {"file_path": str(repo / ".gitignore"), "content": "data/"}, repo) == "allow"
+    # malformed file payloads refuse
+    for tool_input, cwd in [({}, repo), ({"file_path": 7}, repo), ({"file_path": ""}, repo),
+                            ({"file_path": "rel.txt"}, None)]:
+        assert file_hook("Write", tool_input, cwd) == "deny", tool_input
+
+
+def test_malformed_file_tool_input_refuses(repo):
+    for tool_input in ["oops", ["x"], 7, True]:
+        payload = json.dumps({"tool_name": "Write", "cwd": "/tmp", "tool_input": tool_input})
+        r = subprocess.run([sys.executable, str(GATE), "hook"], input=payload, capture_output=True, text=True)
+        assert r.returncode == 0 and json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def load_gate_module():
+    spec = importlib.util.spec_from_file_location("review_gate_file_tools", GATE)
+    gate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gate)
+    return gate
+
+
+@pytest.mark.parametrize("where", ["realpath", "dispatch"])
+@pytest.mark.parametrize("fault", [OSError, KeyboardInterrupt, SystemExit])
+def test_file_tool_faults_fail_closed(repo, tmp_path, monkeypatch, capsys, fault, where):
+    # The path hides .git behind an innocently named symlink, so only realpath could catch it.
+    (repo / ".git" / "review").mkdir(exist_ok=True)
+    (tmp_path / "shortcut").symlink_to(repo / ".git", target_is_directory=True)
+    gate = load_gate_module()
+    calls = []
+
+    def boom(*args, **kwargs):
+        calls.append(args)
+        raise fault()
+    if where == "realpath":
+        monkeypatch.setattr(gate.os.path, "realpath", boom)        # inside judge_file_tool
+    else:
+        monkeypatch.setattr(gate, "judge_file_tool", boom)         # escapes to main's last resort
+    payload = {"tool_name": "Write", "cwd": "/tmp",
+               "tool_input": {"file_path": str(tmp_path / "shortcut" / "review" / "approved"), "content": "x"}}
+    monkeypatch.setattr(sys, "argv", ["review_gate.py", "hook"])
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(json.dumps(payload).encode())))
+    assert gate.main() == 0
+    assert len(calls) == 1
+    assert json.loads(capsys.readouterr().out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 @pytest.mark.parametrize("unbuffered", ["", "1"])
 def test_refusal_survives_a_closed_stdout(repo, unbuffered):
     payload = json.dumps({"cwd": str(repo), "tool_input": {"command": f"{COMMIT} -m x"}}).encode()
