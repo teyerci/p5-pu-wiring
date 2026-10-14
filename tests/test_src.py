@@ -106,3 +106,25 @@ def test_cache_fetches_once_and_refreshes_on_request(tmp_path):
     assert_interchangeable(first, second)          # dtypes survive the parquet round trip
     cached(path, fetch, validate_edges, force_refresh=True)
     assert len(calls) == 2
+
+
+def test_recode_none_mapping_means_unknown():
+    assert list(recode(pd.Series(["vnc_intrinsic", "cb_intrinsic"]),
+                       {"vnc_intrinsic": None, "cb_intrinsic": "central"}, "super_class")) == ["unknown", "central"]
+
+
+def test_malecns_region_ignores_unspecified_and_breaks_ties_alphabetically(monkeypatch):
+    import numpy as np
+    import pyarrow as pa
+    from src import fetch_malecns
+
+    # body 1: 3 synapses in CentralBrain-unspecified, 2 in FB (as pre and post), 1 unlabelled -> FB
+    # body 2: one synapse each in PB and EB (a tie) -> EB; body 3: only unspecified -> unknown
+    rows = [(1, 9, "CentralBrain-unspecified")] * 3 + [(1, 9, "FB"), (9, 1, "FB"), (1, 9, None),
+            (2, 9, "PB"), (9, 2, "EB"), (3, 9, "<unspecified>")]
+    pre, post, roi = zip(*rows)
+    table = pa.table({"body_pre": pa.array(pre, pa.int64()), "body_post": pa.array(post, pa.int64()),
+                      "primary_post": pa.array(roi, pa.string()).dictionary_encode()})
+    monkeypatch.setattr(fetch_malecns, "_partners", lambda columns: table.select(columns))
+    region = fetch_malecns._region_from_all_synapses(np.array([1, 2, 3]))
+    assert region.to_dict() == {1: "FB", 2: "EB"}

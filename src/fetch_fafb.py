@@ -38,11 +38,11 @@ SUPER_CLASS_MAP["sensory_ascending"] = "sensory"
 
 
 def recode(series: pd.Series, mapping: dict, column: str) -> pd.Series:
-    out = series.map(mapping)
-    unmapped = series[out.isna() & series.notna()].unique()
+    """Map source values to the vocabulary; an unmapped value raises, a None mapping means unknown."""
+    unmapped = series[~series.isin(list(mapping)) & series.notna()].unique()
     if len(unmapped):
         raise ValueError(f"{column}: unmapped values {unmapped[:10]}")
-    return out.fillna("unknown")
+    return series.map(mapping).fillna("unknown")
 
 
 def raw_file(key: str):

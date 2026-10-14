@@ -29,6 +29,20 @@ FAFB_FILES = {
 }
 
 
+# MaleCNS v1.0 bulk files (Janelia "flat connectome", public, CC-BY), listed at
+# https://male-cns.janelia.org/download/. Synapse tables are already filtered at
+# confidence 0.5 (config.MALECNS_SYN_CONFIDENCE), as the file names say.
+MALECNS_RAW = RAW_DIR / f"malecns_{config.MALECNS_DATASET.split(':')[1]}"
+_MALECNS = "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/{name}"
+MALECNS_FILES = {
+    "annotations": ("body-annotations-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
+    "neurotransmitters": ("body-neurotransmitters-male-cns-v1.0.feather", _MALECNS),
+    "body_stats": ("body-stats-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
+    "weights": ("connectome-weights-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
+    "syn_partners": ("syn-partners-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
+}
+
+
 def cache_file(*args, **kwargs) -> Path:
     """config.cache_path, resolved against the repository root."""
     return ROOT / config.cache_path(*args, **kwargs)
