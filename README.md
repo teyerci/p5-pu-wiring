@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 162 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 163 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -186,8 +186,10 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
   - e1/c ≈ 0.02 in every condition.
 - **Same-split baseline and λ** (`scripts/benchmark_relative.py`, `scripts/benchmark_lambda.py`, `reports/benchmark_relative.md`): each thinned run is divided by the no-thinning run of the same seed and split.
   - The naive level falls by the factor c (0.64–0.72 for c = 0.66–0.70).
-  - PU at the true c recovers it to within about 3% (0.99–1.03), in both dropout modes and at λ = 10⁻² and 10⁻⁴.
-  - The larger error is an offset of held-out source types (+12% to +37% without thinning). λ = 10⁻² was too strong.
+  - PU at the true c recovers it to within about 3% on average (0.99–1.03; 0.97–1.07 per seed), in both dropout modes and at λ = 10⁻² and 10⁻⁴.
+  - The larger error is an offset of held-out source types (+12% to +37% on average without thinning).
+  - λ = 10⁻² looks too strong. That is a held-out diagnostic; λ is chosen by inner CV in the final design.
+  - No cost of the SCAR violation is resolved at the level of the mean (within about ±3%, 3 seeds).
 
 ## Project-specific decisions (deviations are stated, not configured)
 

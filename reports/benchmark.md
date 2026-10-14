@@ -54,7 +54,7 @@ Mean P(y=1) given to **true connections** (q = 0.7), by their true synapse count
 
 ## Reliability (weighted, ten bins of approximately equal weight; figure B3)
 
-Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds (one seed without thinning). Pairs are indivisible, so bin weights differ slightly; here by at most 0.03%.
+Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds (one seed without thinning). Pairs are indivisible, so bin weights differ slightly; here by at most 0.03% of a bin's weight.
 
 | Condition | Model | Lowest bin | Top bin |
 |---|---|---|---|
@@ -64,7 +64,7 @@ Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds
 | connection, q = 0.7 | naive | 0.0010 / 0.0000 | 0.0133 / 0.0309 |
 | connection, q = 0.7 | PU, true c | 0.0011 / 0.0000 | 0.0211 / 0.0310 |
 
-> **Update:** `reports/benchmark_relative.md` separates the recording loss from an offset that held-out source types carry even without thinning. Against a same-split baseline, the naive level falls by the factor c and PU at the true c recovers it to within about 3%. The apparent PU overshoot below is that offset. The under-confidence below is mostly the untuned λ.
+> **Update:** `reports/benchmark_relative.md` separates the recording loss from an offset that held-out source types carry even without thinning. Against a same-split baseline, the naive level falls by the factor c and PU at the true c recovers it to within about 3% on average (0.97–1.07 per seed). The apparent PU overshoot below is that offset. The under-confidence below is mostly the untuned λ.
 
 ## What it shows (hypotheses where stated)
 

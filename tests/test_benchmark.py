@@ -98,3 +98,11 @@ def test_reliability_keeps_weighted_means_with_unequal_weights():
     assert [r["weight"] for r in rel] == [3.0, 3.0]                 # the heavy pair fills the first half
     total = sum(r["weight"] * r["rate_y"] for r in rel) / sum(r["weight"] for r in rel)
     assert abs(total - np.average(y, weights=w)) < 1e-12
+
+
+def test_reliability_heavy_pair_can_leave_a_group_empty():
+    import numpy as np
+    from src.benchmark import reliability
+    rel = reliability(np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.0, 0.0, 1.0, 1.0]),
+                      np.array([5.0, 1.0, 1.0, 1.0]), bins=4)
+    assert len(rel) < 4 and sum(r["weight"] for r in rel) == 8.0     # empty groups are skipped, weight conserved
