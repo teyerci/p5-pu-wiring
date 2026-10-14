@@ -128,3 +128,49 @@ def test_malecns_region_ignores_unspecified_and_breaks_ties_alphabetically(monke
     monkeypatch.setattr(fetch_malecns, "_partners", lambda columns: table.select(columns))
     region = fetch_malecns._region_from_all_synapses(np.array([1, 2, 3]))
     assert region.to_dict() == {1: "FB", 2: "EB"}
+
+
+def _malecns_raw(tmp_path, monkeypatch):
+    """Tiny stand-ins for the MaleCNS bulk files, wired into src.fetch_malecns."""
+    import pyarrow as pa
+    from src import fetch_malecns
+    ann = pd.DataFrame({
+        "bodyId": [1, 2, 3, 4, 5], "status": ["Traced"] * 4 + ["Orphan"],
+        "somaSide": ["L", None, None, "M", "R"], "rootSide": ["R", "R", "unknown", None, "R"],
+        "type": ["A", "B", None, "D", "E"], "class": None, "subclass": None,
+        "superclass": ["cb_intrinsic", "vnc_intrinsic", None, "cb_efferent", "cb_intrinsic"],
+        "flywireType": ["A", None, None, None, None], "mancType": None, "hemibrainType": None,
+        "dimorphism": None, "itoleeHl": None})
+    nt = pd.DataFrame({"body": [1, 2, 3], "predicted_nt": ["gaba", "unclear", "acetylcholine"],
+                       "predicted_nt_confidence": [0.9, 0.4, 0.8], "ground_truth": ["gaba", None, None]})
+    stats = pd.DataFrame({"body": [1, 2, 3, 4], "pre": [5, 1, 0, 2], "post": [7, 3, 1, 0]})
+    paths = {"annotations": ann, "neurotransmitters": nt, "body_stats": stats}
+    for k, df in paths.items():
+        df.to_feather(tmp_path / f"{k}.feather")
+    monkeypatch.setattr(fetch_malecns, "raw_file", lambda key: tmp_path / f"{key}.feather")
+    syn = pa.table({"body_pre": pa.array([1, 1, 2, 2, 5], pa.int64()), "body_post": pa.array([2, 2, 1, 1, 1], pa.int64()),
+                    "primary_post": pa.array(["FB", None, "EB", "EB", "FB"], pa.string())})
+    monkeypatch.setattr(fetch_malecns, "_partners", lambda columns: syn.select(columns))
+    return fetch_malecns
+
+
+def test_malecns_neurons_side_nt_and_super_class(tmp_path, monkeypatch):
+    fm = _malecns_raw(tmp_path, monkeypatch)
+    n = fm.fetch_neurons().set_index("neuron_id")
+    assert list(n.index) == [1, 2, 3, 4]                                    # Traced only
+    assert list(n["side"]) == ["left", "right", "unknown", "center"]       # somaSide first, then rootSide
+    assert list(n["nt_type"]) == ["gaba", "unknown", "acetylcholine", "unknown"]
+    assert n.loc[2, "nt_confidence"] != n.loc[2, "nt_confidence"]          # "unclear": confidence masked (NaN)
+    assert n.loc[1, "nt_known"] == "gaba" and pd.isna(n.loc[3, "nt_known"])
+    assert list(n["super_class"]) == ["central", "unknown", "unknown", "motor"]
+    # neuron 1: EB 2 (as post) ties FB 2 (1 as pre, 1 from untraced body 5: all partners count);
+    # the null label is ignored and the tie goes to the alphabetically first neuropil
+    assert n.loc[1, "region"] == "EB"
+
+
+def test_malecns_edgeroi_keeps_missing_labels_as_unassigned(tmp_path, monkeypatch):
+    fm = _malecns_raw(tmp_path, monkeypatch)
+    monkeypatch.setattr(fm, "traced_ids", lambda: __import__("numpy").array([1, 2, 3, 4]))
+    er = fm.fetch_edgeroi()
+    got = {(r.pre_id, r.post_id, r.neuropil): r.syn_count for r in er.itertuples()}
+    assert got == {(1, 2, "FB"): 1, (1, 2, "UNASGD"): 1, (2, 1, "EB"): 2}  # body 5 is not Traced

@@ -1,0 +1,61 @@
+comparison,threshold,direction,tau,tau_first,tau_second,unit,recorded_in_first,recorded_in_second,below_tau_in_second,absent_in_second,discrepancy_share,absent_share
+fafb L/R,same,fafb left → fafb right,1,1,1,type pairs,10622,8086,0,2536,0.2387497646394276,0.2387497646394276
+fafb L/R,same,fafb left → fafb right,1,1,1,one neuron per type,413,248,0,165,0.39951573849878935,0.39951573849878935
+fafb L/R,same,fafb left → fafb right,5,5,5,type pairs,2656,1948,601,107,0.26656626506024095,0.040286144578313254
+fafb L/R,same,fafb left → fafb right,5,5,5,one neuron per type,131,78,35,18,0.40458015267175573,0.13740458015267176
+fafb L/R,same,fafb left → fafb right,10,10,10,type pairs,1310,963,315,32,0.2648854961832061,0.024427480916030534
+fafb L/R,same,fafb left → fafb right,10,10,10,one neuron per type,65,39,19,7,0.4,0.1076923076923077
+fafb L/R,same,fafb right → fafb left,1,1,1,type pairs,10263,8086,0,2177,0.21212121212121213,0.21212121212121213
+fafb L/R,same,fafb right → fafb left,1,1,1,one neuron per type,353,248,0,105,0.29745042492917845,0.29745042492917845
+fafb L/R,same,fafb right → fafb left,5,5,5,type pairs,2550,1948,540,62,0.23607843137254902,0.02431372549019608
+fafb L/R,same,fafb right → fafb left,5,5,5,one neuron per type,113,78,23,12,0.30973451327433627,0.10619469026548672
+fafb L/R,same,fafb right → fafb left,10,10,10,type pairs,1236,963,261,12,0.220873786407767,0.009708737864077669
+fafb L/R,same,fafb right → fafb left,10,10,10,one neuron per type,58,39,17,2,0.3275862068965517,0.034482758620689655
+fafb/hemibrain,same,fafb right → hemibrain right,1,1,1,type pairs,5766,4876,0,890,0.15435310440513353,0.15435310440513353
+fafb/hemibrain,same,fafb right → hemibrain right,1,1,1,one neuron per type,303,255,0,48,0.15841584158415842,0.15841584158415842
+fafb/hemibrain,same,fafb right → hemibrain right,5,5,5,type pairs,1313,1102,180,31,0.1607006854531607,0.02361005331302361
+fafb/hemibrain,same,fafb right → hemibrain right,5,5,5,one neuron per type,92,81,11,0,0.11956521739130435,0.0
+fafb/hemibrain,same,fafb right → hemibrain right,10,10,10,type pairs,630,548,75,7,0.13015873015873017,0.011111111111111112
+fafb/hemibrain,same,fafb right → hemibrain right,10,10,10,one neuron per type,48,40,8,0,0.16666666666666666,0.0
+fafb/hemibrain,same,hemibrain right → fafb right,1,1,1,type pairs,7460,4876,0,2584,0.3463806970509383,0.3463806970509383
+fafb/hemibrain,same,hemibrain right → fafb right,1,1,1,one neuron per type,463,255,0,208,0.44924406047516197,0.44924406047516197
+fafb/hemibrain,same,hemibrain right → fafb right,5,5,5,type pairs,2307,1102,1006,199,0.5223233636757694,0.08625921109666233
+fafb/hemibrain,same,hemibrain right → fafb right,5,5,5,one neuron per type,191,81,68,42,0.5759162303664922,0.2198952879581152
+fafb/hemibrain,same,hemibrain right → fafb right,10,10,10,type pairs,1273,548,652,73,0.5695208169677927,0.05734485467399843
+fafb/hemibrain,same,hemibrain right → fafb right,10,10,10,one neuron per type,118,40,57,21,0.6610169491525424,0.17796610169491525
+fafb/hemibrain,scaled,fafb right → hemibrain right,1,1,2,type pairs,5766,3732,1144,890,0.35275754422476585,0.15435310440513353
+fafb/hemibrain,scaled,fafb right → hemibrain right,1,1,2,one neuron per type,303,217,38,48,0.2838283828382838,0.15841584158415842
+fafb/hemibrain,scaled,fafb right → hemibrain right,5,5,10,type pairs,1313,869,413,31,0.33815689261233817,0.02361005331302361
+fafb/hemibrain,scaled,fafb right → hemibrain right,5,5,10,one neuron per type,92,65,27,0,0.29347826086956524,0.0
+fafb/hemibrain,scaled,fafb right → hemibrain right,10,10,20,type pairs,630,391,232,7,0.37936507936507935,0.011111111111111112
+fafb/hemibrain,scaled,fafb right → hemibrain right,10,10,20,one neuron per type,48,34,14,0,0.2916666666666667,0.0
+fafb/hemibrain,scaled,hemibrain right → fafb right,1,2,1,type pairs,4702,3732,0,970,0.2062951935346661,0.2062951935346661
+fafb/hemibrain,scaled,hemibrain right → fafb right,1,2,1,one neuron per type,329,217,0,112,0.3404255319148936,0.3404255319148936
+fafb/hemibrain,scaled,hemibrain right → fafb right,5,10,5,type pairs,1273,869,331,73,0.3173605655930872,0.05734485467399843
+fafb/hemibrain,scaled,hemibrain right → fafb right,5,10,5,one neuron per type,118,65,32,21,0.4491525423728814,0.17796610169491525
+fafb/hemibrain,scaled,hemibrain right → fafb right,10,20,10,type pairs,588,391,172,25,0.33503401360544216,0.04251700680272109
+fafb/hemibrain,scaled,hemibrain right → fafb right,10,20,10,one neuron per type,65,34,24,7,0.47692307692307695,0.1076923076923077
+fafb/malecns,same,fafb right → malecns right,1,1,1,type pairs,5973,4879,0,1094,0.18315754227356437,0.18315754227356437
+fafb/malecns,same,fafb right → malecns right,1,1,1,one neuron per type,89,72,0,17,0.19101123595505617,0.19101123595505617
+fafb/malecns,same,fafb right → malecns right,5,5,5,type pairs,1501,1274,191,36,0.15123251165889406,0.023984010659560292
+fafb/malecns,same,fafb right → malecns right,5,5,5,one neuron per type,27,17,9,1,0.37037037037037035,0.037037037037037035
+fafb/malecns,same,fafb right → malecns right,10,10,10,type pairs,750,657,84,9,0.124,0.012
+fafb/malecns,same,fafb right → malecns right,10,10,10,one neuron per type,13,9,4,0,0.3076923076923077,0.0
+fafb/malecns,same,malecns right → fafb right,1,1,1,type pairs,6680,4879,0,1801,0.26961077844311376,0.26961077844311376
+fafb/malecns,same,malecns right → fafb right,1,1,1,one neuron per type,145,72,0,73,0.503448275862069,0.503448275862069
+fafb/malecns,same,malecns right → fafb right,5,5,5,type pairs,2169,1274,791,104,0.4126325495620101,0.0479483633010604
+fafb/malecns,same,malecns right → fafb right,5,5,5,one neuron per type,45,17,16,12,0.6222222222222222,0.26666666666666666
+fafb/malecns,same,malecns right → fafb right,10,10,10,type pairs,1211,657,528,26,0.45747316267547483,0.021469859620148638
+fafb/malecns,same,malecns right → fafb right,10,10,10,one neuron per type,23,9,10,4,0.6086956521739131,0.17391304347826086
+fafb/malecns,scaled,fafb right → malecns right,1,1,2,type pairs,5973,3751,1128,1094,0.3720073664825046,0.18315754227356437
+fafb/malecns,scaled,fafb right → malecns right,1,1,2,one neuron per type,89,57,15,17,0.3595505617977528,0.19101123595505617
+fafb/malecns,scaled,fafb right → malecns right,5,5,9,type pairs,1501,1057,408,36,0.29580279813457694,0.023984010659560292
+fafb/malecns,scaled,fafb right → malecns right,5,5,9,one neuron per type,27,14,12,1,0.48148148148148145,0.037037037037037035
+fafb/malecns,scaled,fafb right → malecns right,10,10,18,type pairs,750,528,213,9,0.296,0.012
+fafb/malecns,scaled,fafb right → malecns right,10,10,18,one neuron per type,13,5,8,0,0.6153846153846154,0.0
+fafb/malecns,scaled,malecns right → fafb right,1,2,1,type pairs,4413,3751,0,662,0.15001133016088827,0.15001133016088827
+fafb/malecns,scaled,malecns right → fafb right,1,2,1,one neuron per type,100,57,0,43,0.43,0.43
+fafb/malecns,scaled,malecns right → fafb right,5,9,5,type pairs,1344,1057,252,35,0.21354166666666666,0.026041666666666668
+fafb/malecns,scaled,malecns right → fafb right,5,9,5,one neuron per type,29,14,8,7,0.5172413793103449,0.2413793103448276
+fafb/malecns,scaled,malecns right → fafb right,10,18,10,type pairs,689,528,150,11,0.23367198838896952,0.015965166908563134
+fafb/malecns,scaled,malecns right → fafb right,10,18,10,one neuron per type,11,5,4,2,0.5454545454545454,0.18181818181818182

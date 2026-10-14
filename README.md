@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 128 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 138 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -22,7 +22,8 @@ Tokens live only in environment variables or `.env`: `NEUPRINT_APPLICATION_CREDE
 ```
 config.py              course file, copied verbatim from the Data Conventions; never edited
 eda_shared/            course package v0.1.1-eda, unchanged
-src/                   paths, cache helper, validators, fetch functions, summary
+src/                   paths, cache helper, validators, fetch functions, summary,
+                       EDA workstream E, step 15 (pairs.py, discrepancy.py)
 scripts/               cache build, week 2 report, notebook generator
 tests/                 tests for src/
 notebooks/00_integration.ipynb
@@ -144,6 +145,18 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 6. **MaleCNS region names in `eda_shared`.** Every brain neuropil name is accepted. `add_provisional_flags` refuses 34 nerve-cord names, the regions of 22,037 neurons: `ANm`, `IntTct`, `LTct`, `LegNp(T1–T3)(L/R)`, `WTct(UTct-T2)`, `HTct(UTct-T3)`, `NTct(UTct-T1)`, `Ov`, `mVAC(T1–T3)`, `DMetaN`, `AbN2`, `AbN3`, `ProLN`, `MesoLN`, `MetaLN` (with sides) and `CRN`. They belong in the function's `nerve_cord` argument, not in `ALIASES`; the group should agree on one list so the five repositories pass the same set. The edge-neuropil table also carries the `unspecified` labels (`CentralBrain-unspecified`, `Optic-unspecified(L/R)`, `VNC-unspecified`, `CV-unspecified`, `<unspecified>`), which `canonical_neuropil` refuses as well; they could join `NO_NEUROPIL`. The edge-neuropil table has 143 labels against 114 neuron regions: besides these, it carries nerves that no neuron has as its region (`ADMN`, `AbN1`, `AbN4`, `AbNT`, `CvN`, `DProN`, `MesoAN`, `PDMN`, `PrN`, `ProAN`, `ProCN`, `VProN`, with sides, and `AbN3(R)`, `MesoLN(L)`), so the agreed `nerve_cord` list should cover them too.
 7. **MaleCNS region is computed, not read.** neuPrint's per-neuron `roiInfo` is not in the bulk files, so the region is counted from the synapse-partner table with the FAFB rule (per synaptic connection, pre + post, all partners). This is a deviation from "neuPrint roiInfo" if another project reads that field; the two can differ where a T-bar has several partners.
 
+## Step 15 (Project 5): pair sampler and discrepancy count
+
+At the end of `notebooks/00_integration.ipynb`; summary in `reports/step15_discrepancy.md`, full table in `reports/step15_discrepancy.csv`.
+
+- **Pair sampler** (`src/pairs.py`, `sample_pairs`): for the central-complex roster, the recorded positives (≥ τ synapses summed over PB, FB, EB, NO) plus a Bernoulli sample of the unlabelled ordered pairs at rate ρ with weight 1/ρ. The scheme (`uniform`), the rate or the ratio per positive, and the seed are explicit arguments. It reproduces the roster counts: 32,125 positives and 257,763 pairs with 1–9 synapses at τ = 10, and the weighted sample estimates them without bias.
+- **Discrepancy count** (`src/discrepancy.py`): central-complex type pairs recorded at τ in one copy, and their status in another: recorded, below τ, or absent. Three comparisons: fafb left vs right, fafb vs hemibrain, and fafb vs malecns (reported only, as it includes sex differences). Between animals the other copy's threshold is scaled by the median type-pair total ratio (hemibrain/fafb 2.0, malecns/fafb 1.75), a proxy for how many more synapses it records per connection.
+- **Result at τ = 10:** only 1.0–4.3% of recorded type pairs have no synapse at all in the other copy. 21–37% are present but below τ. The count is a lower bound on missed positives only if the copies share their true wiring; biological differences also count as discrepancies.
+
+Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the integration notebook): fafb `cell_type` ↔ malecns `flywire_type` only, compound values merged; 95.0% of fafb and 95.9% of malecns brain neurons are in a matched group. Summary in `reports/type_mapping_coverage.md`.
+
+Open issues for the group, as one message: `reports/open_issues_for_group.md`.
+
 ## Project-specific decisions (deviations are stated, not configured)
 
 - **Hemibrain release:** the EDA plan pins v1.2.1, which needs a neuPrint token; the public v1.2 export is used until one is available. Effects: 87% of fafb's distinct `hemibrain_type` values are found among v1.2 types (some misses, such as `PI1` or `PAM06`, look like v1.2.1 renames), and the cropped share can only be bounded (≤ 2.1% of typed neurons of the matched types; per matched type rather than per region as the plan asks), not read from neuPrint's `cropped` flag. Switching to v1.2.1 means a new fetch module reading neuPrint; E6 code does not change.
@@ -156,3 +169,4 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 - 2026-10-14: MaleCNS v1.0 cache built from Janelia's public bulk files and validated; course counts reproduced. `recode` and `_cast` shared between the two fetch modules.
 - 2026-10-14: EDA workstream E run on malecns as well (brain part; E4 with all Traced partners); E2, E3 and E7a now compare both datasets in one figure. E6 waits on the hemibrain. Summary in `reports/eda_E.md`.
 - 2026-10-14: hemibrain v1.2 cache (public export) and EDA item E6.
+- 2026-10-14: step 15 (pair sampler, discrepancy count) in the integration notebook, which now loads and validates all three datasets; MaleCNS evidence in the decision worksheet; MaleCNS fetch tests; FlyWire–MaleCNS type mapping and coverage report; open issues collected for the group.

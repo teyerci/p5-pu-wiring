@@ -46,7 +46,7 @@ MALECNS_FILES = {
 # Hemibrain v1.2 public exports (Janelia, CC-BY). The plan pins v1.2.1, which is
 # only in neuPrint; v1.2 is used until a token is available (README deviation).
 # "uncropped": every non-cropped Traced neuron with its connections (2020 export).
-# "all_traced": a wider 2023 export, used only to estimate the cropped share.
+# "all_traced": a wider export (every body, any status), used only to bound the cropped share.
 HEMIBRAIN_RAW = RAW_DIR / "hemibrain_v1.2"
 _HEMIBRAIN = "https://storage.googleapis.com/hemibrain/v1.2/{name}"
 HEMIBRAIN_FILES = {
