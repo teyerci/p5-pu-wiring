@@ -172,6 +172,7 @@ def fig_discrepancy(results: dict, tau: int = 10):
                   "Few central-complex connections vanish in another copy; many fall below the threshold",
                   f"Central complex (fafb roster cell_class CX; other copies: neurons of the matched types), right side "
                   f"between animals, synapses summed over PB, FB, EB, NO. Recorded = some neuron pair of the type pair "
-                  f"reaches τ (fafb τ = {tau}; hemibrain and malecns at τ times their synapse scale relative to fafb). "
+                  f"reaches τ (fafb τ = {tau}; hemibrain and malecns at τ times their median type-pair total ratio to fafb, "
+                  "a proxy for synapses per connection). "
                   "Datasets fafb 783, malecns v1.0, hemibrain v1.2 (public export). fafb vs malecns includes sex "
                   "differences and is never read as missed connections.")

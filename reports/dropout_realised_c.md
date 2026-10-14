@@ -1,0 +1,16 @@
+# Dropout benchmark, first look: realised c by synapse-count stratum
+
+`src/dropout.py`; numbers in `reports/dropout_realised_c.csv`. Population: the fafb central-complex roster, with 32,125 positive pairs at τ = 10 (synapses summed over PB, FB, EB, NO). Each benchmark condition treats the recorded region as truth, thins it, and relabels at τ = 10. The realised c is the share of true positives still ≥ τ. It is computed exactly from the binomial tail, and its mean and range over 5 seeds agree with the exact value to within 0.007.
+
+| True synapses | Positives | Synapse dropout, q = 0.9 | Synapse dropout, q = 0.7 | Connection dropout, q = 0.9 / 0.7 |
+|---|---|---|---|---|
+| 10–19 | 19,961 (62%) | 0.82 | **0.45** | 0.90 / 0.70 |
+| 20–49 | 10,484 | 1.00 | 1.00 | 0.90 / 0.70 |
+| 50+ | 1,680 | 1.00 | 1.00 | 0.90 / 0.70 |
+| All positives | 32,125 | 0.89 | **0.66** | 0.90 / 0.70 |
+
+**What it shows:**
+- **Synapse dropout breaks SCAR badly.** At q = 0.7, a positive with 10–19 synapses is recorded less than half the time, while one with 20 or more is almost always recorded. Under SCAR, c would be the same for every positive. Here it depends on connection strength.
+- **Most of P5's positives are in the weak stratum.** 62% have 10–19 synapses, so the overall c (0.66) mostly describes them.
+- **Connection dropout** gives a flat c = q and serves as the SCAR control. The difference between the two conditions is the cost of the violation, which the benchmark measures in weeks 7–9.
+- **For the features:** synapse count itself would predict detection under synapse dropout. That is why the target pair's own synapses are never a feature (leave-pair-out).

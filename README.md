@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 138 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 148 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -23,7 +23,8 @@ Tokens live only in environment variables or `.env`: `NEUPRINT_APPLICATION_CREDE
 config.py              course file, copied verbatim from the Data Conventions; never edited
 eda_shared/            course package v0.1.1-eda, unchanged
 src/                   paths, cache helper, validators, fetch functions, summary,
-                       EDA workstream E, step 15 (pairs.py, discrepancy.py)
+                       EDA workstream E, step 15 (pairs.py, discrepancy.py),
+                       PU model (pu.py), dropout thinning (dropout.py)
 scripts/               cache build, week 2 report, notebook generator
 tests/                 tests for src/
 notebooks/00_integration.ipynb
@@ -157,6 +158,17 @@ Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the in
 
 Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 
+## PU model and dropout benchmark (first parts)
+
+- **NumPy PU module** (`src/pu.py`): logistic model for P(y=1|x) fitted with the convex unbiased PU risk (du Plessis et al. 2015), π = P(s=1)/c, inverse-inclusion weights, unpenalised intercept, damped Newton. Infeasible c (c ≤ P(s=1)) is refused. Also the Elkan–Noto estimators of c. The checks (`tests/test_pu.py`, numbers from `scripts/pu_checks.py`):
+  - the gradient matches finite differences to 2·10⁻⁸;
+  - at c = 1 it agrees with scikit-learn to 1.6·10⁻⁹;
+  - it recovers known parameters on synthetic SCAR data, where the naive model halves both the probabilities and the coefficients;
+  - on synthetic data with c = 0.6, the Elkan–Noto e1 gives 0.39 (a lower bound) and the maximum score e3 gives 0.98.
+
+  Derivation and table in `reports/pu_module.md`.
+- **Dropout thinning** (`src/dropout.py`): synapse dropout (binomial thinning) and connection dropout (the SCAR control), with the realised c by stratum of true synapse count, computed exactly and by simulation. On the fafb central-complex roster at q = 0.7, positives with 10–19 synapses keep c = 0.45 while those with 20 or more keep 1.00. That is 62% of positives in the weak stratum, so SCAR is strongly violated. See `reports/dropout_realised_c.md`. The full benchmark (features rebuilt on the thinned graph, both models, c estimators) follows the week 5–6 feature work.
+
 ## Project-specific decisions (deviations are stated, not configured)
 
 - **Hemibrain release:** the EDA plan pins v1.2.1, which needs a neuPrint token; the public v1.2 export is used until one is available. Effects: 87% of fafb's distinct `hemibrain_type` values are found among v1.2 types (some misses, such as `PI1` or `PAM06`, look like v1.2.1 renames), and the cropped share can only be bounded (≤ 2.1% of typed neurons of the matched types; per matched type rather than per region as the plan asks), not read from neuPrint's `cropped` flag. Switching to v1.2.1 means a new fetch module reading neuPrint; E6 code does not change.
@@ -170,3 +182,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: EDA workstream E run on malecns as well (brain part; E4 with all Traced partners); E2, E3 and E7a now compare both datasets in one figure. E6 waits on the hemibrain. Summary in `reports/eda_E.md`.
 - 2026-10-14: hemibrain v1.2 cache (public export) and EDA item E6.
 - 2026-10-14: step 15 (pair sampler, discrepancy count) in the integration notebook, which now loads and validates all three datasets; MaleCNS evidence in the decision worksheet; MaleCNS fetch tests; FlyWire–MaleCNS type mapping and coverage report; open issues collected for the group.
+- 2026-10-14: NumPy PU module with its checks; dropout thinning and realised c by stratum.

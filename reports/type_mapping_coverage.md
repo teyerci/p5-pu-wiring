@@ -21,7 +21,7 @@
 
 **By neuropil:**
 - **Lowest in fafb:** OCG (8%; malecns has no OCG neuropil), CAN (50%, 2 neurons), FLA (64%), GNG (72%) and GA (73%; no GA in malecns).
-- **Lowest in malecns:** EPA (23%), GOR (39%), FLA (56%) and SIP (58%).
+- **Lowest in malecns:** EPA (23%), GOR (38%), FLA (56%) and SIP (58%).
 - **Central complex** (by region; fafb / malecns): PB 91% / 95%, FB 87% / 88%, EB 84% / 76% and NO 100% / 100%. P5's cross-connectome check therefore covers most, not all, of its region. The unmatched part is reported with each comparison (step 15 matches 167 groups with malecns and 177 with the hemibrain, of 222 CX types).
 
 **Reading it.** An unmatched type is not evidence that the type is sex-specific: annotation gaps and the volumes' coverage also leave types unmatched (EDA plan, workstream B). The lowest coverage sits in the motor and neuroendocrine periphery (GNG, FLA) and, for malecns, in EPA and GOR. Cross-dataset claims there need care.
