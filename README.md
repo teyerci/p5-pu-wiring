@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 163 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 166 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -190,6 +190,13 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
   - The larger error is an offset of held-out source types (+12% to +37% on average without thinning).
   - λ = 10⁻² looks too strong. That is a held-out diagnostic; λ is chosen by inner CV in the final design.
   - No cost of the SCAR violation is resolved at the level of the mean (within about ±3%, 3 seeds).
+- **λ by inner CV** (`src.benchmark.select_lambda`, `scripts/benchmark_cv.py`, `reports/benchmark_cv.md`): grouped inner split on training pairs, log-loss for s, grid 10⁻² to 10⁻⁷.
+  - It chooses 10⁻⁴ to 10⁻⁷ (inside the grid in 8 of 9 runs); PU at the true c recovers the level (0.98 synapse, 1.00 connection, relative).
+  - It does not beat a fixed 10⁻⁴ on held-out pairs; with one inner split and a flat loss it can choose too small a λ. More inner folds and a tolerance rule are planned.
+- **The held-out-type offset explained** (`scripts/benchmark_type_onehot.py`, `scripts/benchmark_target_graph.py`, `reports/benchmark_offset.md`):
+  - Not the all-zero source type one-hot: removing `type_i` leaves it unchanged.
+  - Mostly a train/test shift in target-side features: training targets lose the held-out sources' inputs, and held-out pairs used the full graph. With target features from the training graph (`target_graph="train"`) the offset falls from +37% to +5% on average (λ = 10⁻⁴), PU's raw level at q = 0.7 is 0.95–1.11 of the truth, and the AUC falls by about 0.013.
+- **Homologue-group folds** (`src.benchmark.homologue_groups`, `fold_of_groups`, `run_condition(fold=…)`): worksheet D18 groups, 5 folds, every roster neuron held out once per seed.
 
 ## Project-specific decisions (deviations are stated, not configured)
 
@@ -208,3 +215,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: Newton-decrement stopping rule and a non-convergence warning in the PU fit; leave-pair-out pair features; first pilot of naive vs PU fits; review nits on the PU and dropout tests and reports.
 - 2026-10-14: first run of the dropout benchmark (truth known); 5-seed benchmark with all deleted connections scored, a grouped inner split for e1 and per-stratum results.
 - 2026-10-14: benchmark levels against a same-split baseline; λ sensitivity; π and training P(s=1) stored per run; review nits.
+- 2026-10-15: λ by inner CV; the held-out-type offset traced to a target-side feature shift (`target_graph` option); homologue-group folds; review nits.

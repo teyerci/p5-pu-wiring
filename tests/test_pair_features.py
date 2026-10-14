@@ -76,3 +76,24 @@ def test_design_scales_with_training_statistics_only():
     test = pd.DataFrame({"x": [100.0]})
     Xtr, Xte, _ = design(train, test, ["x"])
     assert np.allclose(Xtr[:, 0], [-1.0, 0.0, 1.0]) and np.isclose(Xte[0, 0], (100 - 2) / 2)
+
+
+def test_target_side_from_the_training_graph_and_source_side_unchanged():
+    from src.pair_features import split_features
+    neurons, edges, edgeroi = toy()
+    pairs = pd.DataFrame({"pre_id": [3, 1, 2], "post_id": [2, 3, 1]})     # sources 1 and 3 held out
+    _, full, test = split_features(neurons, edges, edgeroi, pairs, [1, 2, 3], test_sources=[1, 3])
+    tr, held, _ = split_features(neurons, edges, edgeroi, pairs, [1, 2, 3], test_sources=[1, 3], target_graph="train")
+    assert list(test) == [True, True, False]
+    full, held = full.set_index(["pre_id", "post_id"]), held.set_index(["pre_id", "post_id"])
+    # (3, 2): on the full graph neuron 2 keeps 1 → 2 (FB 8 + EB 4, a ≥ 10 partner);
+    # on the training graph every input from held-out sources 1 and 3 is gone
+    assert full.loc[(3, 2), "in_deg_j"] == 1 and full.loc[(3, 2), "frac_in_EB"] == 4 / 12
+    assert held.loc[(3, 2), "in_deg_j"] == 0 and held.loc[(3, 2), "no_in"] == 1
+    # source side stays on the full graph: neuron 1 keeps FB 8 + EB 4 to neuron 2
+    src = ["out_deg_i", "frac_out_FB", "frac_out_EB", "no_out"]
+    pd.testing.assert_frame_equal(full[src], held[src])
+    assert held.loc[(1, 3), "out_deg_i"] == 1
+    import pytest
+    with pytest.raises(ValueError, match="target_graph"):
+        split_features(neurons, edges, edgeroi, pairs, [1, 2, 3], test_sources=[1], target_graph="test")

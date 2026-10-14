@@ -54,7 +54,7 @@ Mean P(y=1) given to **true connections** (q = 0.7), by their true synapse count
 
 ## Reliability (weighted, ten bins of approximately equal weight; figure B3)
 
-Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds (one seed without thinning). Pairs are indivisible, so bin weights differ slightly; here by at most 0.03% of a bin's weight.
+Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds (one seed without thinning). Pairs are indivisible, so bin weights differ slightly; here each bin is within about 0.03% of its ideal weight.
 
 | Condition | Model | Lowest bin | Top bin |
 |---|---|---|---|

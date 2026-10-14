@@ -1,8 +1,9 @@
 """Benchmark levels relative to a same-split baseline (H2 without the held-out-type offset).
 
 Held-out source types carry a level offset even without thinning (+12% to +37% on average
-for the naive model, depending on λ; −3% to +51% per seed), which every thinned run shares because the split depends only
-on the seed. For each seed this script runs the no-thinning condition and the thinned ones
+for the naive model, depending on λ; −3% to +51% per seed). The split depends only on the seed, so a
+thinned run can be divided by the no-thinning run of the same split; this assumes the offset is
+multiplicative and the same in the thinned fit (the SCAR control bounds that at about 3% on average). For each seed this script runs the no-thinning condition and the thinned ones
 on the same split, and reports each model's mean P(y=1) relative to the no-thinning naive
 model of that seed. Under SCAR the naive ratio should be about c and the PU ratio about 1.
 q = 0.7, synapse and connection dropout, λ ∈ {1e-2, 1e-4}, seeds 0-2.

@@ -42,41 +42,63 @@ def neuropil_counts(edgeroi: pd.DataFrame, ids) -> tuple[pd.DataFrame, pd.DataFr
             inp.reindex(index=ids, columns=cols, fill_value=0).astype("float64"))
 
 
+def _own_synapses(edgeroi, ids, key, cols) -> np.ndarray:
+    """The pairs' own synapses per named neuropil, one row per pair in `key` order."""
+    er = edgeroi[real_neuropil(edgeroi["neuropil"])]
+    er = er[er["pre_id"].isin(ids) & er["post_id"].isin(ids)]
+    row = pd.Series(np.arange(len(key)), index=key)
+    er = er[pd.MultiIndex.from_arrays([er["pre_id"], er["post_id"]]).isin(key)]
+    E = np.zeros((len(key), len(cols)))
+    if len(er):
+        r = row.reindex(pd.MultiIndex.from_arrays([er["pre_id"], er["post_id"]])).to_numpy()
+        c = pd.Index(cols).get_indexer(er["neuropil"].to_numpy())
+        np.add.at(E, (r, c), er["syn_count"].to_numpy())
+    return E
+
+
+def _strong_degree(edges, ids, key, tau, level):
+    """Partners at ≥ τ (edges summed over neuropils) per roster neuron, and whether each pair is one."""
+    tot = edges.groupby(["pre_id", "post_id"])["syn_count"].sum()
+    strong = tot[tot >= tau]
+    return (strong.groupby(level=level).size().reindex(ids, fill_value=0).to_numpy(),
+            strong.reindex(key).notna().to_numpy().astype(int))
+
+
 def build_pair_features(neurons: pd.DataFrame, edges: pd.DataFrame, edgeroi: pd.DataFrame,
-                        pairs: pd.DataFrame, ids, tau: int = 10) -> pd.DataFrame:
-    """Leave-pair-out features for `pairs` (pre_id, post_id; e.g. src.pairs.sample_pairs)."""
+                        pairs: pd.DataFrame, ids, tau: int = 10,
+                        edges_in: pd.DataFrame | None = None, edgeroi_in: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Leave-pair-out features for `pairs` (pre_id, post_id; e.g. src.pairs.sample_pairs).
+
+    Source-side features (i's outputs) come from `edges`/`edgeroi`; target-side ones (j's
+    inputs) from `edges_in`/`edgeroi_in`, by default the same graph. `split_features`
+    uses the second pair so held-out target features match the training graph."""
+    edges_in = edges if edges_in is None else edges_in
+    edgeroi_in = edgeroi if edgeroi_in is None else edgeroi_in
     ids = pd.Index(np.sort(np.asarray(ids, dtype="int64")))
     O, I = neuropil_counts(edgeroi, ids)
-    cols = list(O.columns)
+    if edgeroi_in is not edgeroi:
+        _, I = neuropil_counts(edgeroi_in, ids)
+    cols = sorted(set(O.columns) | set(I.columns))
+    O, I = O.reindex(columns=cols, fill_value=0.0), I.reindex(columns=cols, fill_value=0.0)
     pi = ids.get_indexer(pairs["pre_id"].to_numpy())
     pj = ids.get_indexer(pairs["post_id"].to_numpy())
     if (pi < 0).any() or (pj < 0).any():
         raise ValueError("every pair must be inside the roster")
 
-    # the pair's own synapses per neuropil (only pairs that have any)
+    # the pair's own synapses per neuropil, removed on each side from that side's graph
     key = pd.MultiIndex.from_arrays([pairs["pre_id"].to_numpy(), pairs["post_id"].to_numpy()])
-    er = edgeroi[real_neuropil(edgeroi["neuropil"])]
-    er = er[er["pre_id"].isin(ids) & er["post_id"].isin(ids)]
-    row = pd.Series(np.arange(len(pairs)), index=key)
-    er = er[pd.MultiIndex.from_arrays([er["pre_id"], er["post_id"]]).isin(key)]
-    E = np.zeros((len(pairs), len(cols)))
-    if len(er):
-        r = row.reindex(pd.MultiIndex.from_arrays([er["pre_id"], er["post_id"]])).to_numpy()
-        c = pd.Index(cols).get_indexer(er["neuropil"].to_numpy())
-        np.add.at(E, (r, c), er["syn_count"].to_numpy())
+    E = _own_synapses(edgeroi, ids, key, cols)
+    E_in = E if edgeroi_in is edgeroi else _own_synapses(edgeroi_in, ids, key, cols)
 
     out_lpo = O.to_numpy()[pi] - E
-    in_lpo = I.to_numpy()[pj] - E
+    in_lpo = I.to_numpy()[pj] - E_in
     so, si = out_lpo.sum(1, keepdims=True), in_lpo.sum(1, keepdims=True)
     frac_out = np.divide(out_lpo, so, out=np.zeros_like(out_lpo), where=so > 0)
     frac_in = np.divide(in_lpo, si, out=np.zeros_like(in_lpo), where=si > 0)
 
     # degrees at τ over all partners, minus the pair itself
-    tot = edges.groupby(["pre_id", "post_id"])["syn_count"].sum()
-    strong = tot[tot >= tau]
-    outdeg = strong.groupby(level=0).size().reindex(ids, fill_value=0).to_numpy()
-    indeg = strong.groupby(level=1).size().reindex(ids, fill_value=0).to_numpy()
-    self_strong = strong.reindex(key).notna().to_numpy().astype(int)
+    outdeg, self_out = _strong_degree(edges, ids, key, tau, level=0)
+    indeg, self_in = _strong_degree(edges_in, ids, key, tau, level=1)
 
     nn = neurons.set_index("neuron_id").reindex(ids)
     sub = nn["cell_sub_class"].astype("object").where(nn["cell_sub_class"].notna(), "missing").to_numpy()
@@ -88,7 +110,7 @@ def build_pair_features(neurons: pd.DataFrame, edges: pd.DataFrame, edgeroi: pd.
         "sub_i": sub[pi], "sub_j": sub[pj], "nt_i": nn["nt_type"].astype(str).to_numpy()[pi],
         "type_i": ctype[pi], "type_j": ctype[pj],
         "same_type": ((ctype[pi] == ctype[pj]) & known[pi] & known[pj]).astype(int), "same_side": (side[pi] == side[pj]).astype(int),
-        "out_deg_i": outdeg[pi] - self_strong, "in_deg_j": indeg[pj] - self_strong,
+        "out_deg_i": outdeg[pi] - self_out, "in_deg_j": indeg[pj] - self_in,
         "no_out": (so[:, 0] == 0).astype(int), "no_in": (si[:, 0] == 0).astype(int),
         "overlap": (frac_out * frac_in).sum(1),
         "spatial": np.log1p((out_lpo * in_lpo).sum(1)),
@@ -139,7 +161,7 @@ def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str]):
     return Xtr, Xte, names
 
 
-def split_features(neurons, edges, edgeroi, pairs, ids, test_sources, tau: int = 10):
+def split_features(neurons, edges, edgeroi, pairs, ids, test_sources, tau: int = 10, target_graph: str = "full"):
     """Features for a split by source neuron, with no held-out synapse in training.
 
     Held-out candidates are all pairs (i, j) with i in `test_sources` and j in the
@@ -147,12 +169,18 @@ def split_features(neurons, edges, edgeroi, pairs, ids, test_sources, tau: int =
     synapses are removed (all neuropils), so neither the training rows nor the
     standardisation they feed can carry a held-out label. Held-out features are
     built on the full graph, leave-pair-out, as at prediction time (the neuron's
-    other edges are known). Returns (train features, test features, test mask).
+    other edges are known). With `target_graph="train"` their target-side features
+    (j's inputs) come from the training graph instead: training targets have lost the
+    held-out sources' inputs, so full-graph target features would sit outside the
+    training distribution. Returns (train features, test features, test mask).
     """
+    if target_graph not in ("full", "train"):
+        raise ValueError("target_graph must be 'full' or 'train'")
     test_sources, ids = pd.Index(test_sources), pd.Index(ids)
     test = pairs["pre_id"].isin(test_sources).to_numpy()
     drop_er = edgeroi["pre_id"].isin(test_sources) & edgeroi["post_id"].isin(ids)
     drop_e = edges["pre_id"].isin(test_sources) & edges["post_id"].isin(ids)
     train = build_pair_features(neurons, edges[~drop_e], edgeroi[~drop_er], pairs[~test].reset_index(drop=True), ids, tau)
-    held = build_pair_features(neurons, edges, edgeroi, pairs[test].reset_index(drop=True), ids, tau)
+    kw = {"edges_in": edges[~drop_e], "edgeroi_in": edgeroi[~drop_er]} if target_graph == "train" else {}
+    held = build_pair_features(neurons, edges, edgeroi, pairs[test].reset_index(drop=True), ids, tau, **kw)
     return train, held, test

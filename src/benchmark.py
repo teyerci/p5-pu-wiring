@@ -55,6 +55,26 @@ def score(y, p, a) -> dict:
             "mean_p": float(np.average(p, weights=a)), "mean_y": float(np.average(y, weights=a))}
 
 
+LAMBDA_GRID = (1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7)
+
+
+def select_lambda(X, s, a, groups, grid=LAMBDA_GRID, share=0.2, seed=0) -> tuple[float, dict]:
+    """λ chosen on training pairs only: an inner split by group (source neuron), a naive
+    fit per λ on the rest, and the weighted log-loss for the observable label s on the
+    held-out groups. The true label is never used, so the choice is valid for the
+    benchmark and for real data alike."""
+    rng = np.random.default_rng(seed)
+    uniq = np.unique(groups)
+    val_groups = set(rng.choice(uniq, size=max(1, int(share * len(uniq))), replace=False))
+    val = np.isin(groups, list(val_groups))
+    losses = {}
+    for lam in grid:
+        m = PULogistic(c=1.0, lam=lam).fit(X[~val], s[~val], a[~val])
+        p = np.clip(m.predict_proba(X[val]), 1e-12, 1 - 1e-12)
+        losses[lam] = float(-np.average(s[val] * np.log(p) + (1 - s[val]) * np.log(1 - p), weights=a[val]))
+    return min(losses, key=losses.get), losses
+
+
 def evaluation_pairs(sample, pos_true, still, test_sources) -> pd.DataFrame:
     """The sampled pairs with every deleted connection of a held-out source added exhaustively.
 
@@ -87,12 +107,33 @@ def reliability(p, y, w, bins: int = 10) -> list[dict]:
     return out
 
 
+def homologue_groups(roster: pd.DataFrame) -> pd.Series:
+    """Worksheet D18: cell_type across sides is one group; an untyped neuron, or one on the
+    center/unknown side, is a group of its own. Indexed like `roster`."""
+    own = roster["cell_type"].isna() | ~roster["side"].isin(["left", "right"])
+    return roster["cell_type"].astype(object).where(~own, "neuron:" + roster["neuron_id"].astype(str))
+
+
+def fold_of_groups(groups: pd.Series, n_folds: int, seed: int) -> pd.Series:
+    """Each distinct group to one of `n_folds` folds, in a seeded random order (sizes differ by ≤ 1 group)."""
+    uniq = np.sort(groups.unique())
+    order = np.random.default_rng(seed).permutation(len(uniq))
+    fold = pd.Series(np.empty(len(uniq), int), index=uniq)
+    fold.iloc[order] = np.arange(len(uniq)) % n_folds
+    return groups.map(fold)
+
+
 STRATA = [(0, 0, "0"), (1, 9, "1–9"), (10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
 
 
 def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=10, per_positive=10,
-                  lam=1e-2, test_share=0.2) -> dict:
+                  lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full") -> dict:
     """One benchmark condition; `edgeroi_roster` holds the rows touching the roster.
+    `lam="cv"` chooses λ with `select_lambda`; `exclude` drops feature columns (e.g. "type_i").
+    With `fold` set, the held-out sources are homologue-group fold `fold` of `n_folds`
+    (seeded by `seed`), so the folds of one seed cover every roster neuron once; otherwise
+    `test_share` of the cell types (untyped neurons as one type) is held out.
+    `target_graph` is passed to `split_features` ("train": held-out target features on the training graph).
 
     Evaluation set (held-out sources): every deleted connection (true positive left
     unlabelled by the thinning) with weight 1, plus the sampled held-out pairs that are
@@ -112,20 +153,34 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     sample = sample_pairs(ids, seen, tau=tau, per_positive=per_positive, seed=seed)
     rng = np.random.default_rng(1000 + seed)
     roster = neurons[neurons["neuron_id"].isin(ids)]
-    rtypes = roster["cell_type"].fillna("untyped")
-    types = np.sort(rtypes.unique())
-    test_types = set(rng.choice(types, size=int(test_share * len(types)), replace=False))
-    test_sources = pd.Index(roster.loc[rtypes.isin(test_types).to_numpy(), "neuron_id"])
+    if fold is None:
+        rtypes = roster["cell_type"].fillna("untyped")
+        types = np.sort(rtypes.unique())
+        test_types = set(rng.choice(types, size=int(test_share * len(types)), replace=False))
+        test_sources = pd.Index(roster.loc[rtypes.isin(test_types).to_numpy(), "neuron_id"])
+    else:
+        if not 0 <= fold < n_folds:
+            raise ValueError("fold must lie in [0, n_folds)")
+        in_fold = fold_of_groups(homologue_groups(roster), n_folds, seed).to_numpy() == fold
+        test_sources = pd.Index(roster.loc[in_fold, "neuron_id"])
     c_train = float(still[~pos_true.index.get_level_values(0).isin(test_sources)].mean())
 
     pairs = evaluation_pairs(sample, pos_true, still, test_sources)
     er_edges = edges_from_rows(er)
-    f_tr, f_te, test = split_features(neurons, er_edges, er, pairs, ids, test_sources, tau=tau)
+    f_tr, f_te, test = split_features(neurons, er_edges, er, pairs, ids, test_sources, tau=tau,
+                                       target_graph=target_graph)
     pkey = pd.MultiIndex.from_arrays([pairs["pre_id"], pairs["post_id"]])
     true_syn = truth.reindex(pkey, fill_value=0).to_numpy()
     y = (true_syn >= tau).astype(float)
     s, a = pairs["s"].to_numpy(float), pairs["weight"].to_numpy()
-    Xtr, Xte, _ = design(f_tr, f_te, feature_columns(f_tr, GROUPS))
+    columns = feature_columns(f_tr, GROUPS)
+    if set(exclude) - set(columns):
+        raise ValueError(f"unknown feature columns: {sorted(set(exclude) - set(columns))}")
+    columns = [c for c in columns if c not in exclude]
+    Xtr, Xte, _ = design(f_tr, f_te, columns)
+    lam_losses = None
+    if lam == "cv":
+        lam, lam_losses = select_lambda(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(), seed=seed)
 
     # Elkan–Noto e1: naive model on 80% of training source neurons, mean over the other 20%'s positives
     tr_src = pairs.loc[~test, "pre_id"].to_numpy()
@@ -143,6 +198,9 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     unl = s[test] == 0
     out = {"q": q, "mode": mode, "seed": seed, "realised_c": realised_c, "realised_c_train": c_train,
            "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "p_s_train": p_floor,
+           "lambda": lam, "lambda_cv_losses": lam_losses, "excluded": list(exclude),
+           "fold": fold, "n_folds": n_folds if fold is not None else None, "test_sources": int(len(test_sources)),
+           "target_graph": target_graph,
            "positives_seen": int(sample.attrs["positives"]),
            "positives_true": int(len(pos_true)), "eval_pairs": int(test.sum()), "deleted_in_eval": int(is_del.sum()),
            "models": {}}
