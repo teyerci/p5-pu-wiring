@@ -24,6 +24,7 @@ from sklearn.metrics import roc_auc_score
 from src.pair_features import design, feature_columns, split_features
 from src.pairs import region_pair_counts, sample_pairs
 from src.pu import PULogistic, elkan_noto_c
+from src.ranking import ranking_agreement
 
 GROUPS = ["identity", "cell_type", "region", "degree", "spatial"]
 
@@ -127,13 +128,16 @@ STRATA = [(0, 0, "0"), (1, 9, "1–9"), (10, 19, "10–19"), (20, 49, "20–49")
 
 
 def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=10, per_positive=10,
-                  lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full") -> dict:
+                  lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full", keep_scores=False, clip=False) -> dict:
     """One benchmark condition; `edgeroi_roster` holds the rows touching the roster.
     `lam="cv"` chooses λ with `select_lambda`; `exclude` drops feature columns (e.g. "type_i").
     With `fold` set, the held-out sources are homologue-group fold `fold` of `n_folds`
     (seeded by `seed`), so the folds of one seed cover every roster neuron once; otherwise
     `test_share` of the cell types (untyped neurons as one type) is held out.
     `target_graph` is passed to `split_features` ("train": held-out target features on the training graph).
+    `clip=True` limits held-out numeric features to the training range (`design`).
+    `keep_scores=True` adds "scores", a DataFrame of the evaluation pairs (pre_id, post_id, y,
+    weight, s, f_<model>) for diagnostics; drop it before writing JSON.
 
     Evaluation set (held-out sources): every deleted connection (true positive left
     unlabelled by the thinning) with weight 1, plus the sampled held-out pairs that are
@@ -177,7 +181,7 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     if set(exclude) - set(columns):
         raise ValueError(f"unknown feature columns: {sorted(set(exclude) - set(columns))}")
     columns = [c for c in columns if c not in exclude]
-    Xtr, Xte, _ = design(f_tr, f_te, columns)
+    Xtr, Xte, _ = design(f_tr, f_te, columns, clip=clip)
     lam_losses = None
     if lam == "cv":
         lam, lam_losses = select_lambda(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(), seed=seed)
@@ -200,13 +204,15 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
            "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "p_s_train": p_floor,
            "lambda": lam, "lambda_cv_losses": lam_losses, "excluded": list(exclude),
            "fold": fold, "n_folds": n_folds if fold is not None else None, "test_sources": int(len(test_sources)),
-           "target_graph": target_graph,
+           "target_graph": target_graph, "clip": clip,
            "positives_seen": int(sample.attrs["positives"]),
            "positives_true": int(len(pos_true)), "eval_pairs": int(test.sum()), "deleted_in_eval": int(is_del.sum()),
            "models": {}}
+    fitted = {}
     for name, c in [("naive", 1.0), ("pu_true_c", c_train), ("pu_e1", max(e1, 1.01 * p_floor))]:
         m = PULogistic(c=min(c, 1.0), lam=lam).fit(Xtr, s_tr, a_tr)
         f = m.predict_proba(Xte)
+        fitted[name] = (m, f)
         # top-1% threshold: the weighted 99th percentile of the unlabelled scores; scores tied with
         # the threshold are included, so with ties the selected share can exceed 1%
         order = np.argsort(-f[unl])
@@ -223,4 +229,10 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
                                "recall_deleted_top1pct": float((f[is_del] >= thr).mean()) if is_del.any() else float("nan"),
                                "mean_f_deleted": float(f[is_del].mean()) if is_del.any() else float("nan"),
                                "by_true_stratum": by_stratum}
+    # H3: does PU at the true c keep the naive ranking of the held-out unlabelled pairs?
+    (mn, fn), (mp, fp) = fitted["naive"], fitted["pu_true_c"]
+    out["h3_naive_vs_pu_true_c"] = ranking_agreement(fn[unl], fp[unl], mn.coef_, mp.coef_, ks=(100, 1000))
+    if keep_scores:
+        out["scores"] = pd.DataFrame({"pre_id": pairs.loc[test, "pre_id"].to_numpy(), "post_id": pairs.loc[test, "post_id"].to_numpy(),
+                                      "y": yt, "weight": at, "s": s[test], **{f"f_{k}": v[1] for k, v in fitted.items()}})
     return out

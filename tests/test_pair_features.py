@@ -97,3 +97,16 @@ def test_target_side_from_the_training_graph_and_source_side_unchanged():
     import pytest
     with pytest.raises(ValueError, match="target_graph"):
         split_features(neurons, edges, edgeroi, pairs, [1, 2, 3], test_sources=[1], target_graph="test")
+
+
+def test_clip_limits_held_out_numerics_to_the_training_range():
+    train = pd.DataFrame({"x": [0.0, 0.0, 0.0, 0.01], "nt_i": ["a", "a", "b", "b"]})
+    test = pd.DataFrame({"x": [0.9, -1.0, 0.005], "nt_i": ["a", "b", "a"]})
+    _, raw, names = design(train, test, ["x", "nt_i"])
+    _, cl, _ = design(train, test, ["x", "nt_i"], clip=True)
+    Xtr, _, _ = design(train, test, ["x", "nt_i"], clip=True)
+    j = names.index("x")
+    assert raw[0, j] > 100                                            # rare column: extreme z-score
+    assert cl[0, j] == Xtr[:, j].max() and cl[1, j] == Xtr[:, j].min()  # limited to the training range
+    assert cl[2, j] == raw[2, j]                                      # in-range values unchanged
+    assert (cl[:, 1:] == raw[:, 1:]).all()                            # one-hots untouched

@@ -138,17 +138,24 @@ def feature_columns(feats: pd.DataFrame, groups) -> list[str]:
     return cols
 
 
-def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str]):
+def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str], clip: bool = False):
     """Numeric design matrices: one-hot categoricals (levels from train; unseen levels
-    in test become all-zero), numerics standardised with train statistics (fold-local)."""
+    in test become all-zero), numerics standardised with train statistics (fold-local).
+
+    `clip=True` limits test numerics to the training range before standardising. A rare
+    column (e.g. the output fraction in a neuropil almost no training source uses) has a
+    tiny training SD, so a held-out neuron that uses it gets an extreme z-score and the
+    linear model extrapolates far outside the data it was fitted on."""
     cat = [c for c in columns if c in CATEGORICAL]
     num = [c for c in columns if c not in CATEGORICAL]
     levels = {c: sorted(train[c].astype(str).unique()) for c in cat}
     mu = train[num].mean()
     sd = train[num].std().replace(0, 1.0).fillna(1.0)
+    lo, hi = train[num].min(), train[num].max()
 
-    def build(df):
-        parts = [((df[num] - mu) / sd).to_numpy(dtype=float)]
+    def build(df, limit=False):
+        x = df[num].clip(lower=lo, upper=hi, axis=1) if limit else df[num]
+        parts = [((x - mu) / sd).to_numpy(dtype=float)]
         names = list(num)
         for c in cat:
             v = df[c].astype(str).to_numpy()
@@ -157,7 +164,7 @@ def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str]):
         return np.hstack(parts), names
 
     Xtr, names = build(train)
-    Xte = build(test)[0] if test is not None else None
+    Xte = build(test, limit=clip)[0] if test is not None else None
     return Xtr, Xte, names
 
 

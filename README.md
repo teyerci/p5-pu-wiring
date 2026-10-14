@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 166 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 173 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -197,6 +197,14 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
   - Not the all-zero source type one-hot: removing `type_i` leaves it unchanged.
   - Mostly a train/test shift in target-side features: training targets lose the held-out sources' inputs, and held-out pairs used the full graph. With target features from the training graph (`target_graph="train"`) the offset falls from +37% to +5% on average (λ = 10⁻⁴), PU's raw level at q = 0.7 is 0.95–1.11 of the truth, and the AUC falls by about 0.013.
 - **Homologue-group folds** (`src.benchmark.homologue_groups`, `fold_of_groups`, `run_condition(fold=…)`): worksheet D18 groups, 5 folds, every roster neuron held out once per seed.
+- **H3 on real data** (`src/ranking.py`, `scripts/h3_real.py`, `reports/h3_real.md`, `reports/h3_top_unrecorded.csv`): no split, λ = 10⁻⁴, c from 0.9 to 0.5.
+  - PU keeps the naive ranking of unlabelled pairs: Spearman about 0.999 or higher, top-1000 overlap 0.95–0.99. PU mainly rescales; a ranked list does not tell the models apart, so the headline stays calibration (H2).
+  - 37–38% of the top 1,000 unlabelled pairs have 1–9 recorded synapses, against 3.1% overall. The top of the list is dominated by same-type pairs (EPG→EPG, ER3d→ER3d, Delta7→Delta7).
+  - Benchmark runs now record the same statistics against known truth (`h3_naive_vs_pu_true_c`).
+- **H4 pilot** (`src/h4.py`, `scripts/h4_pilot.py`, `reports/h4_pilot.md`; gated in the proposal, so a pilot; type-group cluster bootstrap):
+  - Against the proposal's matched controls (type-pair size × degree decile), top-scored unrecorded pairs are recorded at type level in the hemibrain about 7 times as often (k = 1000: 0.30 vs 0.045).
+  - Most of that is type-level wiring FAFB already records. Matching also on whether FAFB records the type pair leaves 1.2–1.7 times (k = 1000: 0.30 vs 0.23; interval 1.18–2.00). The proposal's two matching variables are not enough.
+  - That residual excludes 1 at τ = 10 for k ≥ 500 but not at a scaled τ = 20 for k ≤ 1000.
 
 ## Project-specific decisions (deviations are stated, not configured)
 
@@ -216,3 +224,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: first run of the dropout benchmark (truth known); 5-seed benchmark with all deleted connections scored, a grouped inner split for e1 and per-stratum results.
 - 2026-10-14: benchmark levels against a same-split baseline; λ sensitivity; π and training P(s=1) stored per run; review nits.
 - 2026-10-15: λ by inner CV; the held-out-type offset traced to a target-side feature shift (`target_graph` option); homologue-group folds; review nits.
+- 2026-10-15: H3 on real data (ranking agreement, sampled ranked list); H4 pilot against the hemibrain with a type-group cluster bootstrap; H3 statistics, `keep_scores` and `clip` options in benchmark runs.

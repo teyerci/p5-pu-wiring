@@ -50,6 +50,10 @@ def test_run_condition_on_a_synthetic_roster():
     full = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam=0.1, test_share=0.25)
     assert full["realised_c"] == 1.0 and full["deleted_in_eval"] == 0
     assert full["models"]["pu_true_c"]["brier_y"] == full["models"]["naive"]["brier_y"]
+    assert full["h3_naive_vs_pu_true_c"]["spearman"] == 1.0           # c = 1: the same model
+    kept = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam=0.1, test_share=0.25, keep_scores=True)["scores"]
+    assert len(kept) == full["eval_pairs"] and kept["f_naive"].tolist() == kept["f_pu_true_c"].tolist()
+    assert abs(np.average(kept["f_naive"], weights=kept["weight"]) - full["models"]["naive"]["mean_p"]) < 1e-12
     thin = run_condition(neurons, er, ids, 0.6, mode="connection", seed=1, per_positive=3, lam=0.1, test_share=0.25)
     assert abs(thin["realised_c"] - 0.6) < 0.1 and thin["deleted_in_eval"] > 0
     m = thin["models"]["naive"]
