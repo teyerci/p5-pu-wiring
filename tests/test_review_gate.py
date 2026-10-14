@@ -404,7 +404,8 @@ def test_malformed_cwd_with_escaped_command_refuses(repo, encode):
         assert r.returncode == 0 and b'"deny"' in r.stdout, cwd
     nested = json.dumps({"x": {"y": [{"z": TAB_COMMAND}]}, "tool_input": {"command": 7}}).encode()
     r = subprocess.run([sys.executable, str(GATE), "hook"], input=nested, capture_output=True, cwd=repo)
-    assert b'"deny"' in r.stdout                                  # unexpected keys, nested
+    assert r.returncode == 0, r.stderr                            # unexpected keys, nested
+    assert json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
 @pytest.mark.parametrize("encode", ENCODINGS)
@@ -414,14 +415,19 @@ def test_failure_fallback_classifies_the_decoded_command(repo, monkeypatch, caps
     gate = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gate)
 
+    calls = []
+
     def boom(root):
+        calls.append(root)
         raise fault("git", 1) if fault is subprocess.TimeoutExpired else fault()
     monkeypatch.setattr(gate, "next_assigned", boom)
     monkeypatch.setattr(sys, "argv", ["review_gate.py", "hook"])
     command = TAB_COMMAND if encode is short_escape_payload else f"{COMMIT} -m x"
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(encode(command, str(repo)))))
     assert gate.main() == 0
-    assert '"deny"' in capsys.readouterr().out
+    assert len(calls) == 1                                        # the fault was injected, so the fallback ran
+    out = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert out["permissionDecision"] == "deny" and "hook failed" in out["permissionDecisionReason"]
 
 
 @pytest.mark.parametrize("unbuffered", ["", "1"])
