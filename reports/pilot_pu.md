@@ -38,7 +38,7 @@
   - A type-only model was not run, so this does not yet measure how much type alone predicts.
 - **The model finds plausible missed connections without seeing synapse counts.** Among the top 1% of unlabelled pairs, 26–28% are recorded with 1–9 synapses, against a 2.8% base rate: about 9–10× enrichment. The share rises as c falls.
 - **Lowering c raises the estimated probability of a true connection** among unlabelled pairs (0.0049 → 0.0103 at c = 0.5). On held-out types it slightly improves the AUC and the Brier score for s. This does not identify c: c needs the dropout benchmark, where the truth is known.
-- **Every model over-predicts on held-out types:** mean P(s=1) is 0.0050–0.0054 against 0.0036 recorded.
+- **Every full-feature model over-predicts on held-out types:** mean P(s=1) is 0.0050–0.0054 against 0.0036 recorded (0.0044–0.0060 across the ablation steps).
   - Possible causes: a shift between source types; the lower training degrees that come from removing held-out edges; misspecification; or the untuned λ.
   - The final design checks calibration per fold.
 - **Adding the region profile lowers the Brier score's quality** (0.00459) while raising the AUC, until degree is added. Overfitting of its 135 columns at the untuned λ is one hypothesis.

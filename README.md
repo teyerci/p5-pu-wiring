@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 155 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 157 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -25,7 +25,8 @@ eda_shared/            course package v0.1.1-eda, unchanged
 src/                   paths, cache helper, validators, fetch functions, summary,
                        EDA workstream E, step 15 (pairs.py, discrepancy.py),
                        PU model (pu.py), dropout thinning (dropout.py),
-                       leave-pair-out pair features (pair_features.py)
+                       leave-pair-out pair features (pair_features.py),
+                       dropout benchmark (benchmark.py)
 scripts/               cache build, week 2 report, notebook generator
 tests/                 tests for src/
 notebooks/00_integration.ipynb
@@ -174,6 +175,9 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
   - The AUC for s rises from 0.71 (identity) to 0.92 (all groups).
   - Among the top 1% of unlabelled pairs, 26–28% are recorded with 1–9 synapses, against 2.8% overall, although synapse counts are never features.
   - It is not the final design: one split, λ not tuned, c a sensitivity grid.
+- **Dropout benchmark, first run** (`src/benchmark.py`, `scripts/benchmark_pilot.py`, `reports/benchmark_pilot.md`): truth = the recorded roster at τ = 10, models see a thinned copy, scored against the truth. One seed, one split.
+  - At q = 0.7 the naive model's mean P(y=1) is 0.0028–0.0030 against a true 0.0039; PU at the true c restores 0.0043.
+  - The Elkan–Noto e1 estimate is 0.014–0.027 even when the true c is 1, so c must not be taken from e1 here.
 
 ## Project-specific decisions (deviations are stated, not configured)
 
@@ -190,3 +194,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: step 15 (pair sampler, discrepancy count) in the integration notebook, which now loads and validates all three datasets; MaleCNS evidence in the decision worksheet; MaleCNS fetch tests; FlyWire–MaleCNS type mapping and coverage report; open issues collected for the group.
 - 2026-10-14: NumPy PU module with its checks; dropout thinning and realised c by stratum.
 - 2026-10-14: Newton-decrement stopping rule and a non-convergence warning in the PU fit; leave-pair-out pair features; first pilot of naive vs PU fits; review nits on the PU and dropout tests and reports.
+- 2026-10-14: first run of the dropout benchmark (truth known).
