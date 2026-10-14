@@ -38,7 +38,7 @@ def test_hessian_matches_finite_differences_of_the_gradient():
 
 def test_c_equal_1_matches_scikit_learn_weighted_logistic_regression():
     X, _, s, _, _ = scar_data(n=3000, seed=5)
-    a = np.where(s == 1, 1.0, 4.0)                      # inverse-inclusion style weights
+    a = np.random.default_rng(8).uniform(0.5, 3.0, size=len(s))   # non-constant among positives too
     lam = 0.01
     ours = PULogistic(c=1.0, lam=lam).fit(X, s, sample_weight=a)
     ref = LogisticRegression(C=1 / (lam * a.sum()), tol=1e-12, max_iter=10000).fit(X, s, sample_weight=a)
@@ -72,4 +72,22 @@ def test_elkan_noto_e1_is_a_lower_bound_when_positives_are_not_separable():
     held = X[half:][s[half:] == 1]
     est = elkan_noto_c(naive.predict_proba(held), naive.predict_proba(X[half:]))
     assert est["e1"] < 0.6                               # c·E_P[f] < c: overlap between the classes
-    assert est["e3"] > est["e1"]
+    assert est["e3"] > 0.6                               # the max score overshoots the true c
+
+
+def test_non_convergence_warns_and_lambda_zero_is_refused():
+    X, _, s, _, _ = scar_data(n=2000, seed=9)
+    with pytest.warns(RuntimeWarning, match="did not converge"):
+        m = PULogistic(c=0.6, lam=1e-3, max_iter=1).fit(X, s)
+    assert not m.converged_
+    with pytest.raises(ValueError, match="lam"):
+        PULogistic(c=0.6, lam=0.0)
+
+
+def test_newton_decrement_stops_a_fit_whose_gradient_cannot_reach_the_tolerance():
+    import warnings
+    X, _, s, _, _ = scar_data(n=3000, seed=10)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")                                   # no non-convergence warning
+        m = PULogistic(c=0.7, lam=1e-3, tol=0.0).fit(X, s)               # tol 0: only the decrement can stop it
+    assert m.converged_ and m.n_iter_ < 30

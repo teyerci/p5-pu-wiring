@@ -26,6 +26,8 @@ observable P(s=1|x).
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 
@@ -70,10 +72,13 @@ class PULogistic:
     the naive model. `lam` is the L2 strength on the coefficients (not the intercept).
     """
 
-    def __init__(self, c: float = 1.0, lam: float = 1e-3, tol: float = 1e-10, max_iter: int = 100):
+    def __init__(self, c: float = 1.0, lam: float = 1e-3, tol: float = 1e-10, max_iter: int = 100,
+                 tol_decrement: float = 1e-15):
         if not 0 < c <= 1:
             raise ValueError("c must lie in (0, 1]")
-        self.c, self.lam, self.tol, self.max_iter = c, lam, tol, max_iter
+        if not lam > 0:
+            raise ValueError("lam must be > 0: with λ = 0 the risk can be unbounded below for c < 1")
+        self.c, self.lam, self.tol, self.max_iter, self.tol_decrement = c, lam, tol, max_iter, tol_decrement
 
     def fit(self, X, s, sample_weight=None):
         Xd = _design(X)
@@ -85,11 +90,16 @@ class PULogistic:
         w = np.zeros(Xd.shape[1])
         value, grad, hess = pu_risk(w, Xd, s, a, self.pi_, self.lam, with_hessian=True)
         self.n_iter_ = 0
+        converged = False
         for it in range(self.max_iter):
-            if np.max(np.abs(grad)) < self.tol:
-                break
             step = np.linalg.solve(hess + 1e-12 * np.eye(len(w)), -grad)
-            t, decrease = 1.0, grad @ step
+            decrease = grad @ step                         # minus the Newton decrement (≤ 0)
+            # stop on a small gradient, or when the predicted decrease is at round-off level:
+            # near the optimum the gradient cannot fall below ~1e-10 in float64 on large designs
+            if np.max(np.abs(grad)) < self.tol or -decrease < self.tol_decrement:
+                converged = True
+                break
+            t = 1.0
             while True:                                    # Armijo backtracking (damping)
                 new = w + t * step
                 v_new = pu_risk(new, Xd, s, a, self.pi_, self.lam)[0]
@@ -99,7 +109,10 @@ class PULogistic:
             w = new
             value, grad, hess = pu_risk(w, Xd, s, a, self.pi_, self.lam, with_hessian=True)
             self.n_iter_ = it + 1
-        self.converged_ = bool(np.max(np.abs(grad)) < self.tol)
+        self.converged_ = converged or bool(np.max(np.abs(grad)) < self.tol)
+        if not self.converged_:
+            warnings.warn(f"PULogistic did not converge in {self.n_iter_} iterations "
+                          f"(max |gradient| {np.max(np.abs(grad)):.2e})", RuntimeWarning, stacklevel=2)
         self.coef_, self.intercept_, self.risk_ = w[:-1], float(w[-1]), float(value)
         return self
 
@@ -118,11 +131,11 @@ class PULogistic:
 def elkan_noto_c(g_heldout_positives, g_all=None) -> dict:
     """Elkan and Noto (2008) estimators of c from a naive model g(x) ≈ P(s=1|x).
 
-    e1 = mean of g over held-out recorded positives. Under SCAR, g = c·f, so
-    e1 = c · E_P[f(x)] ≤ c, with equality only if f(x) = 1 on every positive
-    (positives separable); otherwise e1 is a lower bound.
+    e1 = mean of g over held-out recorded positives. Under SCAR and for a calibrated
+    g = c·f, e1 = c · E_P[f(x)] ≤ c, with equality only if f(x) = 1 on every positive
+    (positives separable); otherwise e1 is a lower bound (in expectation).
     e3 = max of g over all examples: one extreme score decides it, so it is high
-    variance and, with a misspecified or overconfident g, can exceed c or even 1.
+    variance and, with a misspecified or overconfident g, can exceed c.
     """
     g = np.asarray(g_heldout_positives, dtype=float)
     out = {"e1": float(g.mean()), "n_heldout": int(len(g))}

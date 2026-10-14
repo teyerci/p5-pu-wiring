@@ -5,7 +5,7 @@
   "0.4": 7.709716153942601e-10
  },
  "sklearn_c1": {
-  "max_abs_diff": 1.5724976876185792e-09,
+  "max_abs_diff": 4.953374765914731e-09,
   "newton_iterations": 6
  },
  "recovery": {

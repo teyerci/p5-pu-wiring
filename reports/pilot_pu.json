@@ -1,0 +1,144 @@
+{
+ "sample": {
+  "scheme": "uniform",
+  "rate": 0.03903105778722758,
+  "tau": 10,
+  "seed": 0,
+  "roster": 2875,
+  "candidate_pairs": 8262750,
+  "positives": 32125,
+  "unlabelled": 8230625
+ },
+ "split": {
+  "test_types": 46,
+  "train_pairs": 258268,
+  "test_pairs": 95839,
+  "test_positives": 8176
+ },
+ "lambda": 0.01,
+ "ablation": {
+  "identity": {
+   "n_features": 18,
+   "converged": true,
+   "auc_s": 0.7065775085732994,
+   "brier_s": 0.003594279046381196,
+   "mean_p_s_vs_recorded": [
+    0.004434526016239117,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.0044207841572668355,
+   "below_tau_share_top1pct_unlabelled": 0.1324200913242009,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "identity+cell_type": {
+   "n_features": 432,
+   "converged": true,
+   "auc_s": 0.7212606012746561,
+   "brier_s": 0.0035937595541544773,
+   "mean_p_s_vs_recorded": [
+    0.004437293517264335,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.004423400480488413,
+   "below_tau_share_top1pct_unlabelled": 0.1872146118721461,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "identity+cell_type+region": {
+   "n_features": 567,
+   "converged": true,
+   "auc_s": 0.778028976264655,
+   "brier_s": 0.004589042000427146,
+   "mean_p_s_vs_recorded": [
+    0.0059909740075874095,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.00595340379264219,
+   "below_tau_share_top1pct_unlabelled": 0.13013698630136986,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "identity+cell_type+region+degree": {
+   "n_features": 569,
+   "converged": true,
+   "auc_s": 0.8909992235487578,
+   "brier_s": 0.0037049092497086354,
+   "mean_p_s_vs_recorded": [
+    0.005278049367081494,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.005192916807650199,
+   "below_tau_share_top1pct_unlabelled": 0.2237442922374429,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "identity+cell_type+region+degree+spatial": {
+   "n_features": 570,
+   "converged": true,
+   "auc_s": 0.9236035039049324,
+   "brier_s": 0.003542024977293611,
+   "mean_p_s_vs_recorded": [
+    0.004997128774309381,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.0048895159976458415,
+   "below_tau_share_top1pct_unlabelled": 0.2614155251141553,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  }
+ },
+ "pu": {
+  "1.0": {
+   "pi": 0.0039733895160537795,
+   "converged": true,
+   "iterations": 8,
+   "auc_s": 0.9236035039049324,
+   "brier_s": 0.003542024977293611,
+   "mean_p_s_vs_recorded": [
+    0.004997128774309381,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.0048895159976458415,
+   "below_tau_share_top1pct_unlabelled": 0.2614155251141553,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "0.9": {
+   "pi": 0.004414877240059755,
+   "converged": true,
+   "iterations": 8,
+   "auc_s": 0.9246678365533123,
+   "brier_s": 0.003527795629995253,
+   "mean_p_s_vs_recorded": [
+    0.005060790430900062,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.005487268149786733,
+   "below_tau_share_top1pct_unlabelled": 0.2659817351598174,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "0.7": {
+   "pi": 0.005676270737219685,
+   "converged": true,
+   "iterations": 8,
+   "auc_s": 0.9272887690591827,
+   "brier_s": 0.0034877328214215127,
+   "mean_p_s_vs_recorded": [
+    0.005201431093077047,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.007203101860916675,
+   "below_tau_share_top1pct_unlabelled": 0.2773972602739726,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  },
+  "0.5": {
+   "pi": 0.007946779032107559,
+   "converged": true,
+   "iterations": 8,
+   "auc_s": 0.9308188954819904,
+   "brier_s": 0.003433684869437732,
+   "mean_p_s_vs_recorded": [
+    0.0053546266011162925,
+    0.0036270771377409153
+   ],
+   "mean_f_unrecorded": 0.010298027200177924,
+   "below_tau_share_top1pct_unlabelled": 0.2808219178082192,
+   "below_tau_share_all_unlabelled": 0.02800497359205138
+  }
+ }
+}

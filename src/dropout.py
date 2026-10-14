@@ -20,7 +20,13 @@ import numpy as np
 import pandas as pd
 from scipy.stats import binom
 
-STRATA = [(10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
+def strata(tau: int = 10):
+    """Strata of the true synapse count relative to τ: [τ, 2τ), [2τ, 5τ), 5τ+ (10–19, 20–49, 50+ at τ = 10)."""
+    return [(tau, 2 * tau - 1, f"{tau}–{2 * tau - 1}"), (2 * tau, 5 * tau - 1, f"{2 * tau}–{5 * tau - 1}"),
+            (5 * tau, np.inf, f"{5 * tau}+")]
+
+
+STRATA = strata(10)
 MODES = ("synapse", "connection")
 
 
@@ -40,9 +46,10 @@ def thin(pair_syn: pd.Series, q: float, mode: str = "synapse", seed: int = 0) ->
     return out[out > 0]
 
 
-def stratum(n: pd.Series) -> pd.Series:
-    labels = [s[2] for s in STRATA]
-    edges = [s[0] - 0.5 for s in STRATA] + [np.inf]
+def stratum(n: pd.Series, tau: int = 10) -> pd.Series:
+    st = strata(tau)
+    labels = [s[2] for s in st]
+    edges = [s[0] - 0.5 for s in st] + [np.inf]
     return pd.cut(n, bins=edges, labels=labels)
 
 
@@ -50,7 +57,7 @@ def realised_c(pair_syn: pd.Series, q: float, tau: int = 10, mode: str = "synaps
     """Realised c = P(still ≥ τ after thinning | ≥ τ before), by stratum of the true count and overall:
     exact expectation and the mean and range over seeds."""
     pos = pair_syn[pair_syn >= tau]
-    st = stratum(pos)
+    st = stratum(pos, tau)
     if mode == "synapse":
         exact = pd.Series(binom.sf(tau - 1, pos.to_numpy(), q), index=pos.index)
     else:
@@ -61,9 +68,9 @@ def realised_c(pair_syn: pd.Series, q: float, tau: int = 10, mode: str = "synaps
         sims.append((t >= tau).astype(float))
     sim = pd.concat(sims, axis=1)
     rows = {}
-    for label in [s[2] for s in STRATA] + ["all positives"]:
+    for label in [s[2] for s in strata(tau)] + ["all positives"]:
         m = (st == label).to_numpy() if label != "all positives" else np.ones(len(pos), bool)
         per_seed = sim[m].mean(axis=0)
         rows[label] = {"positives": int(m.sum()), "exact": float(exact[m].mean()),
                        "sim_mean": float(per_seed.mean()), "sim_min": float(per_seed.min()), "sim_max": float(per_seed.max())}
-    return pd.DataFrame(rows).T.assign(q=q, mode=mode, tau=tau)
+    return pd.DataFrame(rows).T.astype({"positives": int}).assign(q=q, mode=mode, tau=tau)

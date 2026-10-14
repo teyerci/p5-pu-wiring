@@ -19,7 +19,7 @@ a = np.random.default_rng(2).uniform(0.5, 3.0, size=len(s))
 out["gradient_check_max_rel_error"] = {str(c): gradient_check(X, s, a, c=c, lam=0.05) for c in (1.0, 0.7, 0.4)}
 
 X, _, s, _, _ = scar_data(n=3000, seed=5)
-a = np.where(s == 1, 1.0, 4.0)
+a = np.random.default_rng(8).uniform(0.5, 3.0, size=len(s))
 lam = 0.01
 ours = PULogistic(c=1.0, lam=lam).fit(X, s, sample_weight=a)
 ref = LogisticRegression(C=1 / (lam * a.sum()), tol=1e-12, max_iter=10000).fit(X, s, sample_weight=a)
