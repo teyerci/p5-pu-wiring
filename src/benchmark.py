@@ -30,6 +30,8 @@ GROUPS = ["identity", "cell_type", "region", "degree", "spatial"]
 
 def thin_rows(edgeroi: pd.DataFrame, q: float, mode: str = "synapse", seed: int = 0) -> pd.DataFrame:
     """Thinned edge-neuropil rows (rows left with 0 synapses dropped)."""
+    if not 0 < q <= 1:
+        raise ValueError("q must lie in (0, 1]")
     rng = np.random.default_rng(seed)
     er = edgeroi.copy()
     if mode == "synapse":
@@ -53,50 +55,111 @@ def score(y, p, a) -> dict:
             "mean_p": float(np.average(p, weights=a)), "mean_y": float(np.average(y, weights=a))}
 
 
+def evaluation_pairs(sample, pos_true, still, test_sources) -> pd.DataFrame:
+    """The sampled pairs with every deleted connection of a held-out source added exhaustively.
+
+    Deleted connections (true positives no longer ≥ τ after thinning) of held-out sources
+    get weight 1 and stratum "deleted"; any of them already in the sample is removed from
+    the sampled part, so none is counted twice. Every other unlabelled pair keeps its
+    Bernoulli(ρ) inclusion and weight 1/ρ, and recorded positives keep weight 1, so
+    weighted totals are Horvitz–Thompson estimates of the held-out population."""
+    deleted = pos_true.index[(~still.to_numpy()) & pos_true.index.get_level_values(0).isin(test_sources)]
+    key = pd.MultiIndex.from_arrays([sample["pre_id"], sample["post_id"]])
+    return pd.concat([sample[~key.isin(deleted)],
+                      pd.DataFrame({"pre_id": deleted.get_level_values(0), "post_id": deleted.get_level_values(1),
+                                    "syn": 0, "s": 0, "stratum": "deleted", "weight": 1.0})], ignore_index=True)
+
+
+def reliability(p, y, w, bins: int = 10) -> list[dict]:
+    """Weighted reliability table: pairs sorted by predicted p and cut into `bins` groups of
+    equal total weight; per group the weighted mean prediction and the weighted true rate."""
+    order = np.argsort(p)
+    start = (np.cumsum(w[order]) - w[order]) / w.sum()          # cumulative weight before each pair
+    group = np.minimum((start * bins + 1e-12).astype(int), bins - 1)
+    out = []
+    for g in range(bins):
+        m = order[group == g]
+        if len(m):
+            out.append({"bin": g, "weight": float(w[m].sum()), "mean_p": float(np.average(p[m], weights=w[m])),
+                        "rate_y": float(np.average(y[m], weights=w[m]))})
+    return out
+
+
+STRATA = [(0, 0, "0"), (1, 9, "1–9"), (10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
+
+
 def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=10, per_positive=10,
                   lam=1e-2, test_share=0.2) -> dict:
-    """One benchmark condition; `edgeroi_roster` holds the rows touching the roster."""
+    """One benchmark condition; `edgeroi_roster` holds the rows touching the roster.
+
+    Evaluation set (held-out sources): every deleted connection (true positive left
+    unlabelled by the thinning) with weight 1, plus the sampled held-out pairs that are
+    not deleted connections with their sampling weights. Unlabelled non-deleted pairs
+    are then still a Bernoulli(ρ) sample, so weighted means estimate population values,
+    and nothing rests on the few deleted connections that happen to be sampled.
+    """
+    if not 0 < q <= 1:                                        # also refuses NaN
+        raise ValueError("q must lie in (0, 1]")
     truth = region_pair_counts(edgeroi_roster, ids)
     er = thin_rows(edgeroi_roster, q, mode, seed) if q < 1 else edgeroi_roster
     seen = region_pair_counts(er, ids)
     pos_true = truth[truth >= tau]
-    realised_c = float((seen.reindex(pos_true.index, fill_value=0) >= tau).mean())
+    still = seen.reindex(pos_true.index, fill_value=0) >= tau
+    realised_c = float(still.mean())
 
     sample = sample_pairs(ids, seen, tau=tau, per_positive=per_positive, seed=seed)
-    key = pd.MultiIndex.from_arrays([sample["pre_id"], sample["post_id"]])
-    y = (truth.reindex(key, fill_value=0) >= tau).to_numpy().astype(float)
-    # split first: held-out source types; training features never see a held-out pair's synapses
     rng = np.random.default_rng(1000 + seed)
     roster = neurons[neurons["neuron_id"].isin(ids)]
     rtypes = roster["cell_type"].fillna("untyped")
     types = np.sort(rtypes.unique())
     test_types = set(rng.choice(types, size=int(test_share * len(types)), replace=False))
-    test_sources = roster.loc[rtypes.isin(test_types).to_numpy(), "neuron_id"]
-    f_tr, f_te, test = split_features(neurons, edges_from_rows(er), er, sample, ids, test_sources, tau=tau)
-    s, a = sample["s"].to_numpy(float), sample["weight"].to_numpy()
+    test_sources = pd.Index(roster.loc[rtypes.isin(test_types).to_numpy(), "neuron_id"])
+    c_train = float(still[~pos_true.index.get_level_values(0).isin(test_sources)].mean())
+
+    pairs = evaluation_pairs(sample, pos_true, still, test_sources)
+    er_edges = edges_from_rows(er)
+    f_tr, f_te, test = split_features(neurons, er_edges, er, pairs, ids, test_sources, tau=tau)
+    pkey = pd.MultiIndex.from_arrays([pairs["pre_id"], pairs["post_id"]])
+    true_syn = truth.reindex(pkey, fill_value=0).to_numpy()
+    y = (true_syn >= tau).astype(float)
+    s, a = pairs["s"].to_numpy(float), pairs["weight"].to_numpy()
     Xtr, Xte, _ = design(f_tr, f_te, feature_columns(f_tr, GROUPS))
 
-    # Elkan–Noto e1 from a naive model fitted on 80% of the training pairs, averaged over the rest's positives
-    tr_idx = np.flatnonzero(~test)
-    inner = rng.random(len(tr_idx)) < 0.8
-    g = PULogistic(c=1.0, lam=lam).fit(Xtr[inner], s[tr_idx][inner], a[tr_idx][inner])
-    held_pos = (~inner) & (s[tr_idx] == 1)
-    e1 = elkan_noto_c(g.predict_proba(Xtr[held_pos]))["e1"]
+    # Elkan–Noto e1: naive model on 80% of training source neurons, mean over the other 20%'s positives
+    tr_src = pairs.loc[~test, "pre_id"].to_numpy()
+    src_ids = np.unique(tr_src)
+    inner_src = set(rng.choice(src_ids, size=int(0.8 * len(src_ids)), replace=False))
+    inner = np.isin(tr_src, list(inner_src))
+    s_tr, a_tr = s[~test], a[~test]
+    g = PULogistic(c=1.0, lam=lam).fit(Xtr[inner], s_tr[inner], a_tr[inner])
+    held_pos = (~inner) & (s_tr == 1)
+    e1 = elkan_noto_c(g.predict_proba(Xtr[held_pos]))["e1"] if held_pos.any() else float("nan")
+    p_floor = float(s_tr @ a_tr / a_tr.sum())                    # c must exceed P(s=1)
 
-    out = {"q": q, "mode": mode, "seed": seed, "realised_c": realised_c, "e1": e1,
-           "positives_seen": int(sample.attrs["positives"]), "positives_true": int(len(pos_true)),
-           "test_pairs": int(test.sum()), "models": {}}
-    p_floor = s[~test] @ a[~test] / a[~test].sum()               # c must exceed P(s=1)
+    yt, at, st = y[test], a[test], true_syn[test]
+    is_del = (pairs["stratum"].to_numpy()[test] == "deleted")
     unl = s[test] == 0
-    deleted = unl & (y[test] == 1)                                # true connections the thinning removed
-    for name, c in [("naive", 1.0), ("pu_true_c", realised_c), ("pu_e1", max(e1, 1.01 * p_floor))]:
-        m = PULogistic(c=min(c, 1.0), lam=lam).fit(Xtr, s[~test], a[~test])
+    out = {"q": q, "mode": mode, "seed": seed, "realised_c": realised_c, "realised_c_train": c_train,
+           "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "positives_seen": int(sample.attrs["positives"]),
+           "positives_true": int(len(pos_true)), "eval_pairs": int(test.sum()), "deleted_in_eval": int(is_del.sum()),
+           "models": {}}
+    for name, c in [("naive", 1.0), ("pu_true_c", c_train), ("pu_e1", max(e1, 1.01 * p_floor))]:
+        m = PULogistic(c=min(c, 1.0), lam=lam).fit(Xtr, s_tr, a_tr)
         f = m.predict_proba(Xte)
-        k = max(1, int(0.01 * unl.sum()))
-        top = np.zeros(unl.sum(), bool)
-        top[np.argsort(-f[unl])[:k]] = True
-        out["models"][name] = {"c": float(min(c, 1.0)), "converged": m.converged_,
-                               **score(y[test], f, a[test]),
-                               "deleted_in_test": int(deleted.sum()),
-                               "recall_deleted_top1pct": float(top[deleted[unl]].mean()) if deleted.any() else float("nan")}
+        # top-1% threshold: the weighted 99th percentile of the unlabelled scores; scores tied with
+        # the threshold are included, so with ties the selected share can exceed 1%
+        order = np.argsort(-f[unl])
+        cw = np.cumsum(at[unl][order]) / at[unl].sum()
+        thr = f[unl][order][min(np.searchsorted(cw, 0.01), len(order) - 1)]
+        by_stratum = {}
+        for lo, hi, lab in STRATA:
+            msk = (st >= lo) & (st <= hi)
+            if msk.any():
+                by_stratum[lab] = {"weight": float(at[msk].sum()), "mean_f": float(np.average(f[msk], weights=at[msk])),
+                                   "mean_y": float(np.average(yt[msk], weights=at[msk]))}
+        out["models"][name] = {"c": float(min(c, 1.0)), "converged": m.converged_, **score(yt, f, at),
+                               "reliability": reliability(f, yt, at),
+                               "recall_deleted_top1pct": float((f[is_del] >= thr).mean()) if is_del.any() else float("nan"),
+                               "mean_f_deleted": float(f[is_del].mean()) if is_del.any() else float("nan"),
+                               "by_true_stratum": by_stratum}
     return out

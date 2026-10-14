@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 157 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 161 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -178,6 +178,12 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - **Dropout benchmark, first run** (`src/benchmark.py`, `scripts/benchmark_pilot.py`, `reports/benchmark_pilot.md`): truth = the recorded roster at τ = 10, models see a thinned copy, scored against the truth. One seed, one split.
   - At q = 0.7 the naive model's mean P(y=1) is 0.0028–0.0030 against a true 0.0039; PU at the true c restores 0.0043.
   - The Elkan–Noto e1 estimate is 0.014–0.027 even when the true c is 1, so c must not be taken from e1 here.
+- **Dropout benchmark, 5 seeds** (`scripts/benchmark_run.py`, `scripts/benchmark_summary.py`, `reports/benchmark.md`, figures `B1_…` and `B2_…`): every deleted connection is scored.
+  - Under synapse dropout at q = 0.7 the naive model is 31% low on the mean P(y=1); PU at the true c is 7% high.
+  - The AUC hardly changes.
+  - Paired over seeds, PU at the true c has the lower Brier score in 18 of 20 runs; p = 0.03 at synapse dropout q = 0.7 (5 seeds, provisional).
+  - Both models are under-confident in a weighted reliability analysis, likely because λ is not tuned.
+  - e1/c ≈ 0.02 in every condition.
 
 ## Project-specific decisions (deviations are stated, not configured)
 
@@ -194,4 +200,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: step 15 (pair sampler, discrepancy count) in the integration notebook, which now loads and validates all three datasets; MaleCNS evidence in the decision worksheet; MaleCNS fetch tests; FlyWire–MaleCNS type mapping and coverage report; open issues collected for the group.
 - 2026-10-14: NumPy PU module with its checks; dropout thinning and realised c by stratum.
 - 2026-10-14: Newton-decrement stopping rule and a non-convergence warning in the PU fit; leave-pair-out pair features; first pilot of naive vs PU fits; review nits on the PU and dropout tests and reports.
-- 2026-10-14: first run of the dropout benchmark (truth known).
+- 2026-10-14: first run of the dropout benchmark (truth known); 5-seed benchmark with all deleted connections scored, a grouped inner split for e1 and per-stratum results.

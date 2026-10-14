@@ -30,3 +30,59 @@ def test_edges_from_rows_and_weighted_scores():
     sc = score(pd.Series([1.0, 0.0, 0.0]).to_numpy(), pd.Series([0.9, 0.1, 0.2]).to_numpy(),
                pd.Series([1.0, 2.0, 2.0]).to_numpy())
     assert sc["auc_y"] == 1.0 and abs(sc["mean_y"] - 0.2) < 1e-12
+
+
+def test_run_condition_on_a_synthetic_roster():
+    """Invariants on a small random roster: c = 1 and PU = naive without thinning, deleted
+    connections scored, realised c ≈ q under connection dropout, strata carry the true label."""
+    import numpy as np
+    from src.benchmark import run_condition
+    rng = np.random.default_rng(0)
+    n = 60
+    ids = np.arange(1, n + 1)
+    neurons = pd.DataFrame({"neuron_id": ids, "cell_type": [f"T{i % 12}" for i in ids],
+                            "cell_sub_class": "columnar", "side": np.where(ids % 2, "left", "right"),
+                            "nt_type": "acetylcholine", "cell_class": "CX"})
+    pre, post = rng.integers(1, n + 1, 1500), rng.integers(1, n + 1, 1500)
+    er = pd.DataFrame({"pre_id": pre, "post_id": post, "neuropil": rng.choice(["FB", "EB", "LAL_L"], 1500),
+                       "syn_count": rng.integers(1, 30, 1500)})
+    er = er[er.pre_id != er.post_id].groupby(["pre_id", "post_id", "neuropil"], as_index=False)["syn_count"].sum()
+    full = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam=0.1, test_share=0.25)
+    assert full["realised_c"] == 1.0 and full["deleted_in_eval"] == 0
+    assert full["models"]["pu_true_c"]["brier_y"] == full["models"]["naive"]["brier_y"]
+    thin = run_condition(neurons, er, ids, 0.6, mode="connection", seed=1, per_positive=3, lam=0.1, test_share=0.25)
+    assert abs(thin["realised_c"] - 0.6) < 0.1 and thin["deleted_in_eval"] > 0
+    m = thin["models"]["naive"]
+    assert m["by_true_stratum"]["0"]["mean_y"] == 0.0 and m["by_true_stratum"]["10–19"]["mean_y"] == 1.0
+
+
+def test_evaluation_pairs_adds_every_deleted_connection_once_with_weight_one():
+    from src.benchmark import evaluation_pairs
+    idx = pd.MultiIndex.from_tuples([(1, 2), (1, 3), (4, 2), (5, 6)], names=["pre_id", "post_id"])
+    pos_true = pd.Series([12, 15, 30, 11], index=idx)
+    still = pd.Series([False, True, False, False], index=idx)        # (1,2), (4,2), (5,6) deleted
+    sample = pd.DataFrame({"pre_id": [1, 1, 7], "post_id": [2, 3, 8], "syn": [4, 15, 0], "s": [0, 1, 0],
+                           "stratum": ["below_tau", "positive", "unrecorded"], "weight": [25.0, 1.0, 25.0]})
+    ev = evaluation_pairs(sample, pos_true, still, test_sources=[1, 5])  # source 4 is not held out
+    keys = list(zip(ev.pre_id, ev.post_id))
+    assert len(keys) == len(set(keys))                               # no pair counted twice
+    deleted = ev[ev.stratum == "deleted"]
+    assert set(zip(deleted.pre_id, deleted.post_id)) == {(1, 2), (5, 6)} and (deleted.weight == 1.0).all()
+    assert ev.set_index(["pre_id", "post_id"]).loc[(7, 8), "weight"] == 25.0   # other unlabelled keep 1/ρ
+    assert (4, 2) not in keys                                        # deleted, but a training source
+
+
+def test_run_condition_refuses_q_outside_the_unit_interval():
+    from src.benchmark import run_condition
+    with pytest.raises(ValueError):
+        run_condition(pd.DataFrame(), pd.DataFrame(), [1, 2], 1.2)
+
+
+def test_reliability_bins_have_equal_weight_and_match_a_hand_count():
+    import numpy as np
+    from src.benchmark import reliability
+    p = np.array([0.1, 0.2, 0.3, 0.4])
+    y = np.array([0.0, 0.0, 1.0, 1.0])
+    rel = reliability(p, y, np.ones(4), bins=2)
+    assert [r["weight"] for r in rel] == [2.0, 2.0]
+    assert rel[0]["rate_y"] == 0.0 and rel[1]["rate_y"] == 1.0 and abs(rel[1]["mean_p"] - 0.35) < 1e-12

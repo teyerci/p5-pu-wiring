@@ -1,5 +1,7 @@
 # Dropout benchmark, first run (one seed, one split)
 
+*Superseded by `reports/benchmark.md` (5 seeds, all deleted connections scored). Kept as the record of the first run.*
+
 `src/benchmark.py`, `scripts/benchmark_pilot.py` → `reports/benchmark_pilot.json` (about 5 minutes, 9 GB).
 
 **Setup.**
