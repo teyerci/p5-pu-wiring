@@ -15,6 +15,18 @@ from eda_shared.eda_helpers import add_provisional_flags, load_neuropil_table
 OPTIC = {"LA", "ME", "AME", "LO", "LOP"}
 CX_NEUROPILS = ["PB", "FB", "EB", "NO"]
 NOT_A_NEUROPIL = {"UNASGD", "None", "unknown"}
+UNSPECIFIED = "unspecified"   # malecns labels for synapses outside a named neuropil
+# PROVISIONAL, to agree with the group (README open issue 6): malecns nerve-cord
+# neuropils and nerves, as base names (eda_shared strips one side suffix). Passed
+# to add_provisional_flags as `nerve_cord`. CRN (16 neurons, 8 synapses) is a nerve
+# label of unclear position; it is outside the brain table, so it goes here.
+MALECNS_NERVE_CORD = frozenset({
+    "ANm", "IntTct", "LTct", "Ov", "CRN", "VNC-unspecified", "CV-unspecified",
+    "LegNp(T1)", "LegNp(T2)", "LegNp(T3)", "mVAC(T1)", "mVAC(T2)", "mVAC(T3)",
+    "NTct(UTct-T1)", "WTct(UTct-T2)", "HTct(UTct-T3)",
+    "ADMN", "AbN1", "AbN2", "AbN3", "AbN4", "AbNT", "CvN", "DMetaN", "DProN",
+    "MesoAN", "MesoLN", "MetaLN", "PDMN", "PrN", "ProAN", "ProCN", "ProLN", "VProN",
+})
 WEIGHT_BINS = [(1, 1, "1"), (2, 2, "2"), (3, 4, "3–4"), (5, 9, "5–9"),
                (10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
 
@@ -24,8 +36,32 @@ def base_neuropil(names: pd.Series) -> pd.Series:
 
 
 def flags(neurons: pd.DataFrame) -> pd.DataFrame:
-    """neurons with is_optic, region_group, neuropil (base name) from eda_shared."""
-    return add_provisional_flags(neurons)
+    """neurons with is_optic, region_group, neuropil (base name) and in_brain from eda_shared."""
+    return add_provisional_flags(neurons, nerve_cord=MALECNS_NERVE_CORD)
+
+
+def brain_part(neurons, edges, edgeroi=None):
+    """The plan's malecns population: neurons with in_brain, the edges among them and,
+    for edgeroi, only the rows in brain neuropils (nerve-cord rows dropped, so a
+    neuron's per-neuropil synapses cover the same volume as in fafb).
+
+    Neurons with region unknown have in_brain False and are left out as well.
+    """
+    fl = flags(neurons)
+    keep = fl.loc[fl["in_brain"], "neuron_id"]
+    n = neurons[neurons["neuron_id"].isin(keep)].reset_index(drop=True)
+    e = edges[edges["pre_id"].isin(keep) & edges["post_id"].isin(keep)].reset_index(drop=True)
+    if edgeroi is None:
+        return n, e
+    er = edgeroi[edgeroi["pre_id"].isin(keep) & edgeroi["post_id"].isin(keep)]
+    nerve = base_neuropil(er["neuropil"]).isin(MALECNS_NERVE_CORD) | er["neuropil"].isin(MALECNS_NERVE_CORD)
+    return n, e, er[~nerve.to_numpy()].reset_index(drop=True)
+
+
+def real_neuropil(names: pd.Series) -> np.ndarray:
+    """True for a named neuropil: not UNASGD / None / unknown, not a malecns `unspecified` label."""
+    s = names.astype("string")
+    return (~s.isin(NOT_A_NEUROPIL) & ~s.str.contains(UNSPECIFIED, regex=False)).to_numpy()
 
 
 def population_ids(neurons_flagged: pd.DataFrame, population: str) -> pd.Index:
@@ -49,7 +85,7 @@ def weight_bin(w: pd.Series) -> pd.Categorical:
 # --------------------------------------------------------------------------- E1
 def per_neuron_neuropil_synapses(edgeroi: pd.DataFrame) -> pd.DataFrame:
     """Long table neuron_id, neuropil, syn (inputs plus outputs), real neuropils only."""
-    er = edgeroi[~edgeroi["neuropil"].isin(NOT_A_NEUROPIL)]
+    er = edgeroi[real_neuropil(edgeroi["neuropil"])]
     out = er.groupby(["pre_id", "neuropil"], observed=True)["syn_count"].sum()
     inp = er.groupby(["post_id", "neuropil"], observed=True)["syn_count"].sum()
     out.index.names = inp.index.names = ["neuron_id", "neuropil"]
@@ -80,7 +116,8 @@ def e1_compute(neurons, edgeroi, population="central"):
 def e1_worked_example(neurons, edges, edgeroi, neuron_ids, tau=10):
     """frac_in_<neuropil> for a few neurons, before (τ = 1) and after thresholding pairs at τ."""
     strong = edges.loc[edges["syn_count"] >= tau, ["pre_id", "post_id"]]
-    er = edgeroi[edgeroi["post_id"].isin(neuron_ids) & ~edgeroi["neuropil"].isin(NOT_A_NEUROPIL)]
+    er = edgeroi[edgeroi["post_id"].isin(neuron_ids)]
+    er = er[real_neuropil(er["neuropil"])]
     er_after = er.merge(strong, on=["pre_id", "post_id"])
     rows = []
     for nid in neuron_ids:
@@ -161,6 +198,37 @@ def e4_fafb_input_ratio(neurons, edges, post_counts: pd.DataFrame, population="c
     stats = {"neurons": int(len(df)), "median_ratio": float(df["ratio"].median()),
              "pooled_ratio": float(df["total_in"].sum() / df["n_post"].sum()),
              "over_1": int((df["ratio"] > 1).sum())}
+    return df, stats
+
+
+def e4_malecns_input_ratio(neurons, edges_all, edges_brain=None, population="central"):
+    """E4: input ratio = total_in_syn / n_post per neuron (malecns; n_post from body-stats).
+
+    `neurons` is the brain part; inputs are counted over `edges_all`, every Traced
+    partner. Deviation from the plan's brain-part rule, which exists to compare with
+    fafb: E4 is malecns-only, and dropping nerve-cord partners would read as lost
+    input (ascending neurons fall from a median 0.93 to 0.27). `edges_brain`, if
+    given, adds the brain-partners-only figures for comparison.
+    """
+    fl = flags(neurons)
+    ids = population_ids(fl, population)
+    nn = fl.set_index("neuron_id").reindex(ids)
+    total_in = edges_all.groupby("post_id")["syn_count"].sum().astype("int64")
+    df = pd.DataFrame({"n_post": nn["n_post"].astype("float64"),
+                       "total_in": total_in.reindex(ids).fillna(0).to_numpy()}, index=ids)
+    df = df[df["n_post"] > 0]
+    df["ratio"] = df["total_in"] / df["n_post"]
+    df["super_class"] = nn["super_class"].reindex(df.index).astype(str)
+    df["region_group"] = nn["region_group"].reindex(df.index).astype(str)
+    stats = {"neurons": int(len(df)), "median_ratio": float(df["ratio"].median()),
+             "pooled_ratio": float(df["total_in"].sum() / df["n_post"].sum()),
+             "over_1": int((df["ratio"] > 1).sum()), "below_0.5": int((df["ratio"] < 0.5).sum())}
+    if edges_brain is not None:
+        brain_in = edges_brain.groupby("post_id")["syn_count"].sum().reindex(df.index).fillna(0)
+        r = brain_in / df["n_post"]
+        stats["median_ratio_brain_partners"] = float(r.median())
+        stats["pooled_ratio_brain_partners"] = float(brain_in.sum() / df["n_post"].sum())
+        stats["median_ratio_ascending_brain_partners"] = float(r[df["super_class"] == "ascending"].median())
     return df, stats
 
 
@@ -279,20 +347,30 @@ def e7_compute(neurons, edges, tau=5):
         "overlap": int(cx["neuron_id"].isin(roster).sum()),
         "cell_types": int(typed["cell_type"].nunique()),
         "untyped": int(cx["cell_type"].isna().sum()),
-        "types_with_8_to_16_per_side": int(((per_type_side[["left", "right"]].max(axis=1) >= 8)
+        "types_8_to_16_on_both_sides": int(((per_type_side[["left", "right"]].min(axis=1) >= 8)
                                              & (per_type_side[["left", "right"]].max(axis=1) <= 16)).sum()),
-        "types_one_per_side": int((per_type_side[["left", "right"]].max(axis=1) == 1).sum()),
+        "types_one_on_both_sides": int(((per_type_side["left"] == 1) & (per_type_side["right"] == 1)).sum()),
         "edges_at_tau": int(len(e)),
     }
     return {"per_neuropil": per_np, "per_type_side": per_type_side, "type_matrix": tm}, stats
 
 
-def e7_columnar_matrix(neurons, edges, tau=5):
+def columnar_cx_types(fafb_neurons) -> set:
+    """fafb central-complex types with at least one neuron labelled columnar. Selecting
+    whole types matters: fafb labels only 4 of its 244 PFNp neurons columnar."""
+    n = fafb_neurons
+    return set(n.loc[(n["cell_class"] == "CX") & (n["cell_sub_class"] == "columnar"), "cell_type"].dropna())
+
+
+def e7_columnar_matrix(neurons, edges, columnar_types, type_column="cell_type", tau=5):
     """Neuron x neuron synapse matrix for columnar CX neurons, sorted by type, then by a
     ring position estimated from the connectivity itself (angle of the top-2 singular
-    vectors), since FlyWire gives no protocerebral-bridge glomerulus label."""
-    cx = neurons[neurons["region"].isin(CX_NEUROPILS) & (neurons["cell_sub_class"] == "columnar")
-                 & neurons["cell_type"].notna()]
+    vectors), since no protocerebral-bridge glomerulus label is used.
+
+    Columnar = `type_column` in `columnar_types` (columnar_cx_types of fafb): cell_type
+    for fafb, flywire_type for malecns, which has no cell_sub_class."""
+    columnar = neurons[type_column].isin(columnar_types)
+    cx = neurons[neurons["region"].isin(CX_NEUROPILS) & columnar & neurons["cell_type"].notna()]
     ids = cx["neuron_id"].to_numpy()
     pos = {n: i for i, n in enumerate(ids)}
     e = edges[(edges["syn_count"] >= tau) & edges["pre_id"].isin(ids) & edges["post_id"].isin(ids)]

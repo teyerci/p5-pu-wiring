@@ -1,34 +1,71 @@
 {
- "E1": {
+ "E1_fafb": {
   "neurons": 45168,
   "no_synapses": 318,
   "median_top_share": 0.5601480919796453,
   "gap_below_0.10": 11268,
   "gap_below_0.10_pct": 24.946865037194474
  },
+ "E1_malecns": {
+  "neurons": 43868,
+  "no_synapses": 17,
+  "median_top_share": 0.5965643706264228,
+  "gap_below_0.10": 8677,
+  "gap_below_0.10_pct": 19.779793927236256
+ },
  "E2": {
-  "neurons": 139262,
-  "clean central": 42100,
-  "ambiguous": 5947,
-  "clean optic": 90588,
-  "no synapses": 627,
-  "optic_by_super_class_pct": 55.679941405408506,
-  "optic_by_region_flag_pct": 67.33782367049159,
-  "optic_by_synapse_share_pct": 65.04861340494894,
-  "ambiguous_pct": 4.270368083181342
+  "fafb": {
+   "neurons": 139262,
+   "clean central": 42100,
+   "ambiguous": 5947,
+   "clean optic": 90588,
+   "no synapses": 627,
+   "optic_by_super_class_pct": 55.679941405408506,
+   "optic_by_region_flag_pct": 67.33782367049159,
+   "optic_by_synapse_share_pct": 65.04861340494894,
+   "ambiguous_pct": 4.270368083181342
+  },
+  "malecns": {
+   "neurons": 142621,
+   "clean central": 39568,
+   "ambiguous": 6504,
+   "clean optic": 96443,
+   "no synapses": 106,
+   "optic_by_super_class_pct": 62.67239747302291,
+   "optic_by_region_flag_pct": 69.22963658928208,
+   "optic_by_synapse_share_pct": 67.62187896593068,
+   "ambiguous_pct": 4.560338239109248
+  }
  },
  "E3": {
-  "regions": 38,
-  "within_region_share": 0.5938392332902658,
-  "synapses": 13378205
+  "fafb": {
+   "regions": 38,
+   "within_region_share": 0.5938392332902658,
+   "synapses": 13378205
+  },
+  "malecns": {
+   "regions": 35,
+   "within_region_share": 0.6039540469716121,
+   "synapses": 28280443
+  }
  },
- "E4": {
+ "E4_malecns": {
+  "neurons": 43882,
+  "median_ratio": 0.9612101649233831,
+  "pooled_ratio": 0.9526921734083773,
+  "over_1": 0,
+  "below_0.5": 377,
+  "median_ratio_brain_partners": 0.9558801534373845,
+  "pooled_ratio_brain_partners": 0.9116365961688152,
+  "median_ratio_ascending_brain_partners": 0.2689401241847015
+ },
+ "E4supp_fafb": {
   "neurons": 45109,
   "median_ratio": 0.9516129032258065,
   "pooled_ratio": 0.9508321025098919,
   "over_1": 0
  },
- "E5": {
+ "E5_fafb": {
   "central": {
    "type_pairs": 1656860,
    "share_1syn": 0.3151210402960113,
@@ -40,16 +77,56 @@
    "share_10plus": 0.9744367417677643
   }
  },
- "E7": {
+ "E5supp_malecns": {
+  "central": {
+   "type_pairs": 1933642,
+   "share_1syn": 0.3243717895920865,
+   "share_10plus": 0.9471728408309587
+  },
+  "optic": {
+   "type_pairs": 88010,
+   "share_1syn": 0.44690692496328893,
+   "share_10plus": 0.9572361017330633
+  }
+ },
+ "E7a": {
+  "fafb": {
+   "PB": 100,
+   "FB": 1896,
+   "EB": 397,
+   "NO": 224
+  },
+  "malecns": {
+   "PB": 87,
+   "FB": 1887,
+   "EB": 419,
+   "NO": 265
+  }
+ },
+ "E7_fafb": {
   "neurons_region_cx": 2617,
   "neurons_cell_class_cx": 2875,
   "overlap": 2560,
   "cell_types": 223,
   "untyped": 10,
-  "types_with_8_to_16_per_side": 39,
-  "types_one_per_side": 63,
+  "types_8_to_16_on_both_sides": 31,
+  "types_one_on_both_sides": 53,
   "edges_at_tau": 66982,
-  "columnar_block_fill_median": 0.02976190476190476,
-  "columnar_connected_type_pairs": 369
+  "columnar_neurons": 1224,
+  "columnar_block_fill_median": 0.02506265664160401,
+  "columnar_connected_type_pairs": 393
+ },
+ "E7_malecns": {
+  "neurons_region_cx": 2658,
+  "neurons_cell_class_cx": 2950,
+  "overlap": 2628,
+  "cell_types": 283,
+  "untyped": 1,
+  "types_8_to_16_on_both_sides": 37,
+  "types_one_on_both_sides": 81,
+  "edges_at_tau": 127740,
+  "columnar_neurons": 1311,
+  "columnar_block_fill_median": 0.022222222222222223,
+  "columnar_connected_type_pairs": 678
  }
 }

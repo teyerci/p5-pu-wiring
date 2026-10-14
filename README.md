@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 119 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 122 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -146,3 +146,4 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 
 - 2026-10-13: repository created; FAFB cache built and validated; MaleCNS pending.
 - 2026-10-14: MaleCNS v1.0 cache built from Janelia's public bulk files and validated; course counts reproduced. `recode` and `_cast` shared between the two fetch modules.
+- 2026-10-14: EDA workstream E run on malecns as well (brain part; E4 with all Traced partners); E2, E3 and E7a now compare both datasets in one figure. E6 waits on the hemibrain. Summary in `reports/eda_E.md`.
