@@ -86,3 +86,15 @@ def test_reliability_bins_have_equal_weight_and_match_a_hand_count():
     rel = reliability(p, y, np.ones(4), bins=2)
     assert [r["weight"] for r in rel] == [2.0, 2.0]
     assert rel[0]["rate_y"] == 0.0 and rel[1]["rate_y"] == 1.0 and abs(rel[1]["mean_p"] - 0.35) < 1e-12
+
+
+def test_reliability_keeps_weighted_means_with_unequal_weights():
+    import numpy as np
+    from src.benchmark import reliability
+    p = np.array([0.1, 0.2, 0.3, 0.4])
+    y = np.array([0.0, 1.0, 0.0, 1.0])
+    w = np.array([3.0, 1.0, 1.0, 1.0])
+    rel = reliability(p, y, w, bins=2)
+    assert [r["weight"] for r in rel] == [3.0, 3.0]                 # the heavy pair fills the first half
+    total = sum(r["weight"] * r["rate_y"] for r in rel) / sum(r["weight"] for r in rel)
+    assert abs(total - np.average(y, weights=w)) < 1e-12

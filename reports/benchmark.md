@@ -52,9 +52,9 @@ Mean P(y=1) given to **true connections** (q = 0.7), by their true synapse count
 | connection, q = 0.9 | +0.000013 | 0.000016 | 4 of 5 | 0.150 | 0.375 |
 | connection, q = 0.7 | −0.000176 | 0.000517 | 4 of 5 | 0.488 | 0.375 |
 
-## Reliability (weighted, ten equal-weight bins; figure B3)
+## Reliability (weighted, ten bins of approximately equal weight; figure B3)
 
-Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds:
+Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds (one seed without thinning). Pairs are indivisible, so bin weights differ slightly; here by at most 0.03%.
 
 | Condition | Model | Lowest bin | Top bin |
 |---|---|---|---|
@@ -64,18 +64,20 @@ Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds
 | connection, q = 0.7 | naive | 0.0010 / 0.0000 | 0.0133 / 0.0309 |
 | connection, q = 0.7 | PU, true c | 0.0011 / 0.0000 | 0.0211 / 0.0310 |
 
+> **Update:** `reports/benchmark_relative.md` separates the recording loss from an offset that held-out source types carry even without thinning. Against a same-split baseline, the naive level falls by the factor c and PU at the true c recovers it to within about 3%. The apparent PU overshoot below is that offset. The under-confidence below is mostly the untuned λ.
+
 ## What it shows (hypotheses where stated)
 
 - **At q = 0.7 the naive model under-predicts connections on average.**
   - Its mean P(y=1) is 31% low under synapse dropout and 14% low under connection dropout. At q = 0.9 the picture is mixed: 5% low under synapse dropout, 15% high under connection dropout.
-  - PU at the true c lifts the mean to 7–26% above the truth across the thinned conditions.
+  - PU at the true c lifts the mean to 8–26% above the truth across the thinned conditions.
   - Both models are already 16% high without thinning (one seed only). A shift between source types is one possible explanation; misspecification and the untuned λ are others. The H2 comparison is therefore provisional.
 - **Paired over seeds, PU at the true c has the lower Brier score in 18 of 20 runs.**
   - The evidence is strongest under synapse dropout: 5 of 5 seeds at both q, paired t-test p = 0.03 at q = 0.7.
   - Five seeds give little power: the exact sign test cannot go below 0.063.
   - The negative mean at connection q = 0.7 comes from one seed. More seeds are needed before H2 can be claimed.
 - **The correction rescales more than it reorders.**
-  - The condition means of the AUC move by at most 0.002 (by at most 0.003 within a seed).
+  - The condition means of the AUC move by at most 0.002 (by about 0.003 at most within a seed).
   - Recall of deleted connections in the top 1% is similar for both models: 0.18 under synapse dropout, 0.25 under connection dropout.
 - **Both models are under-confident** (reliability). Their predictions are compressed toward the mean: too high in the low bins, too low in the top bin.
   - In the top bin the true rate is about 0.03. The naive model predicts 0.008–0.013 and PU 0.015–0.021.
@@ -88,6 +90,6 @@ Mean prediction / true rate in the lowest and the top bin, averaged over 5 seeds
 - **Elkan–Noto e1 is unusable here (H1).**
   - It gives 0.012–0.026, with e1/c ≈ 0.02 in every condition, including without thinning. That is c·E[f | y = 1] for scores that stay low on positives.
   - A PU fit at e1 raises the mean probability to 53–71 times the true rate.
-  - Its higher recall of deleted connections (0.25–0.54) comes from a very different fit, at π = P(s=1)/e1 of roughly 0.15–0.25. It is not evidence that e1 works.
+  - Its higher recall of deleted connections (0.25–0.54) comes from a very different fit, at a much larger π = P(s=1)/e1 (roughly 0.15–0.25 from the condition means; the exact training π is stored from the next run on). It is not evidence that e1 works.
 
 **Next:** tune λ (the under-confidence); more seeds for the paired test; homologue-group folds instead of one random type split; the realistic c range for the real data.

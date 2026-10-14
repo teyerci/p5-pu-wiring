@@ -72,7 +72,9 @@ def evaluation_pairs(sample, pos_true, still, test_sources) -> pd.DataFrame:
 
 def reliability(p, y, w, bins: int = 10) -> list[dict]:
     """Weighted reliability table: pairs sorted by predicted p and cut into `bins` groups of
-    equal total weight; per group the weighted mean prediction and the weighted true rate."""
+    approximately equal total weight (pairs are indivisible: a pair goes to the group where
+    its cumulative weight starts, so a heavy pair can leave a group empty); per group the
+    weighted mean prediction and the weighted true rate."""
     order = np.argsort(p)
     start = (np.cumsum(w[order]) - w[order]) / w.sum()          # cumulative weight before each pair
     group = np.minimum((start * bins + 1e-12).astype(int), bins - 1)
@@ -140,7 +142,8 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     is_del = (pairs["stratum"].to_numpy()[test] == "deleted")
     unl = s[test] == 0
     out = {"q": q, "mode": mode, "seed": seed, "realised_c": realised_c, "realised_c_train": c_train,
-           "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "positives_seen": int(sample.attrs["positives"]),
+           "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "p_s_train": p_floor,
+           "positives_seen": int(sample.attrs["positives"]),
            "positives_true": int(len(pos_true)), "eval_pairs": int(test.sum()), "deleted_in_eval": int(is_del.sum()),
            "models": {}}
     for name, c in [("naive", 1.0), ("pu_true_c", c_train), ("pu_e1", max(e1, 1.01 * p_floor))]:
@@ -157,7 +160,7 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
             if msk.any():
                 by_stratum[lab] = {"weight": float(at[msk].sum()), "mean_f": float(np.average(f[msk], weights=at[msk])),
                                    "mean_y": float(np.average(yt[msk], weights=at[msk]))}
-        out["models"][name] = {"c": float(min(c, 1.0)), "converged": m.converged_, **score(yt, f, at),
+        out["models"][name] = {"c": float(min(c, 1.0)), "pi": m.pi_, "converged": m.converged_, **score(yt, f, at),
                                "reliability": reliability(f, yt, at),
                                "recall_deleted_top1pct": float((f[is_del] >= thr).mean()) if is_del.any() else float("nan"),
                                "mean_f_deleted": float(f[is_del].mean()) if is_del.any() else float("nan"),

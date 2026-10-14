@@ -49,7 +49,7 @@ ax.set(ylabel="Mean P(y=1) on held-out pairs", ylim=(0, None))
 ax.legend(loc="upper right")
 ax.text(x[-1] + 0.42, truth.iloc[-1], "truth", fontsize=8, color=INK_2, va="center")
 finish(fig, "B1_fafb_783_cx_benchmark-level_min10",
-       "At q = 0.7 the naive model under-predicts; PU at the true c lifts the level, overshooting by 7–26% across thinned conditions",
+       "At q = 0.7 the naive model under-predicts; PU at the true c lifts the level, overshooting by 8–26% across thinned conditions",
        "Dataset fafb 783; central-complex roster; truth = recorded pairs at τ = 10; models see a thinned copy (synapse "
        "or connection dropout at q). Held-out source types, split first; all deleted connections scored. Mean and sd "
        "over 5 seeds (1 without thinning); dashed line = true rate.")
@@ -91,4 +91,5 @@ axes[0].legend(loc="upper left")
 finish(fig, "B3_fafb_783_cx_benchmark-reliability_min10",
        "Both models are under-confident: too high in the low bins, too low in the top bin",
        "Dataset fafb 783; central-complex roster; τ = 10; q = 0.7; held-out sources, all deleted connections scored; "
-       "bins of equal total sampling weight; mean over 5 seeds; dashed line = perfect calibration.")
+       "bins of approximately equal total sampling weight; mean over 5 seeds; dashed line = perfect calibration. "
+       "Log axes: bins with a true rate of 0 (the lowest bins) are not shown.")
