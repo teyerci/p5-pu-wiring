@@ -1,0 +1,21 @@
+{
+ "runs": 15,
+ "pu_lower_brier": 2,
+ "brier_diff_mean": -6.572248162425004e-05,
+ "brier_diff_sd": 0.0001034501508662368,
+ "sign_test_p": 0.00738525390625,
+ "pu_level_closer": 11,
+ "h3_spearman_min": 0.9993929895021437,
+ "naive_shrinkage_by_true_stratum": {
+  "0": 0.7114263044206984,
+  "1\u20139": 0.7079008284926374,
+  "10\u201319": 0.7183297559803797,
+  "20\u201349": 0.7219132993044625,
+  "50+": 0.7003158449672747
+ },
+ "naive_lower_brier_than_unthinned": 13,
+ "naive_vs_unthinned_sign_test_p": 0.00738525390625,
+ "pu_true_c_lower_brier_than_unthinned": 10,
+ "pu_true_c_vs_unthinned_sign_test_p": 0.30175781249999994,
+ "brier_unthinned_mean": 0.00398754685406196
+}

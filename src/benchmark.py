@@ -76,6 +76,35 @@ def select_lambda(X, s, a, groups, grid=LAMBDA_GRID, share=0.2, seed=0) -> tuple
     return min(losses, key=losses.get), losses
 
 
+def _weighted_log_loss(s, p, a) -> float:
+    p = np.clip(p, 1e-12, 1 - 1e-12)
+    return float(-np.average(s * np.log(p) + (1 - s) * np.log(1 - p), weights=a))
+
+
+def select_lambda_kfold(X, s, a, groups, grid=LAMBDA_GRID, n_inner=3, seed=0) -> tuple[float, dict, dict]:
+    """λ by grouped K-fold on training pairs (groups: source neurons), with the one-standard-error
+    rule: the largest λ whose mean held-out log-loss for s is within one standard error (over
+    folds) of the smallest mean. A steadier choice than `select_lambda` where the loss is flat
+    below the optimum and rises steeply past it. Returns (λ, mean loss per λ, SE per λ)."""
+    uniq = np.unique(groups)
+    if n_inner < 2 or n_inner > len(uniq):
+        raise ValueError("n_inner must lie in [2, number of groups]")
+    order = np.random.default_rng(seed).permutation(len(uniq))
+    fold_of = pd.Series(np.empty(len(uniq), int), index=uniq)
+    fold_of.iloc[order] = np.arange(len(uniq)) % n_inner
+    fold = fold_of.reindex(groups).to_numpy()
+    per = {lam: [] for lam in grid}
+    for k in range(n_inner):
+        val = fold == k
+        for lam in grid:
+            m = PULogistic(c=1.0, lam=lam).fit(X[~val], s[~val], a[~val])
+            per[lam].append(_weighted_log_loss(s[val], m.predict_proba(X[val]), a[val]))
+    mean = {lam: float(np.mean(v)) for lam, v in per.items()}
+    se = {lam: float(np.std(v, ddof=1) / np.sqrt(n_inner)) for lam, v in per.items()}
+    best = min(mean, key=mean.get)
+    return max(lam for lam in grid if mean[lam] <= mean[best] + se[best]), mean, se
+
+
 def evaluation_pairs(sample, pos_true, still, test_sources) -> pd.DataFrame:
     """The sampled pairs with every deleted connection of a held-out source added exhaustively.
 
@@ -130,7 +159,7 @@ STRATA = [(0, 0, "0"), (1, 9, "1–9"), (10, 19, "10–19"), (20, 49, "20–49")
 def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=10, per_positive=10,
                   lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full", keep_scores=False, clip=False) -> dict:
     """One benchmark condition; `edgeroi_roster` holds the rows touching the roster.
-    `lam="cv"` chooses λ with `select_lambda`; `exclude` drops feature columns (e.g. "type_i").
+    `lam="cv"` chooses λ with `select_lambda`, `lam="cv3"` with `select_lambda_kfold` (3 folds, 1-SE rule); `exclude` drops feature columns (e.g. "type_i").
     With `fold` set, the held-out sources are homologue-group fold `fold` of `n_folds`
     (seeded by `seed`), so the folds of one seed cover every roster neuron once; otherwise
     `test_share` of the cell types (untyped neurons as one type) is held out.
@@ -182,9 +211,12 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
         raise ValueError(f"unknown feature columns: {sorted(set(exclude) - set(columns))}")
     columns = [c for c in columns if c not in exclude]
     Xtr, Xte, _ = design(f_tr, f_te, columns, clip=clip)
-    lam_losses = None
+    lam_losses, lam_se = None, None
     if lam == "cv":
         lam, lam_losses = select_lambda(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(), seed=seed)
+    elif lam == "cv3":
+        lam, lam_losses, lam_se = select_lambda_kfold(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(),
+                                                      n_inner=3, seed=seed)
 
     # Elkan–Noto e1: naive model on 80% of training source neurons, mean over the other 20%'s positives
     tr_src = pairs.loc[~test, "pre_id"].to_numpy()
@@ -202,7 +234,7 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     unl = s[test] == 0
     out = {"q": q, "mode": mode, "seed": seed, "realised_c": realised_c, "realised_c_train": c_train,
            "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "p_s_train": p_floor,
-           "lambda": lam, "lambda_cv_losses": lam_losses, "excluded": list(exclude),
+           "lambda": lam, "lambda_cv_losses": lam_losses, "lambda_cv_se": lam_se, "excluded": list(exclude),
            "fold": fold, "n_folds": n_folds if fold is not None else None, "test_sources": int(len(test_sources)),
            "target_graph": target_graph, "clip": clip,
            "positives_seen": int(sample.attrs["positives"]),

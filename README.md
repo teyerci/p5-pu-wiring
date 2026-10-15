@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 173 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 174 own tests (most for the review gate) + 15 eda_shared tests
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -192,11 +192,16 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
   - No cost of the SCAR violation is resolved at the level of the mean (within about ±3%, 3 seeds).
 - **λ by inner CV** (`src.benchmark.select_lambda`, `scripts/benchmark_cv.py`, `reports/benchmark_cv.md`): grouped inner split on training pairs, log-loss for s, grid 10⁻² to 10⁻⁷.
   - It chooses 10⁻⁴ to 10⁻⁷ (inside the grid in 8 of 9 runs); PU at the true c recovers the level (0.98 synapse, 1.00 connection, relative).
-  - It does not beat a fixed 10⁻⁴ on held-out pairs; with one inner split and a flat loss it can choose too small a λ. More inner folds and a tolerance rule are planned.
+  - It does not beat a fixed 10⁻⁴ on held-out pairs; with one inner split and a flat loss it can choose too small a λ.
+  - `select_lambda_kfold` (`lam="cv3"`): grouped 3-fold CV with the 1-SE rule. On the seed-0 folds it chooses 10⁻⁴ in 7 of 10 runs and 10⁻⁵ in 3, with no gain over fixed 10⁻⁴ (`reports/benchmark_folds.md` §3.2).
 - **The held-out-type offset explained** (`scripts/benchmark_type_onehot.py`, `scripts/benchmark_target_graph.py`, `reports/benchmark_offset.md`):
   - Not the all-zero source type one-hot: removing `type_i` leaves it unchanged.
   - Mostly a train/test shift in target-side features: training targets lose the held-out sources' inputs, and held-out pairs used the full graph. With target features from the training graph (`target_graph="train"`) the offset falls from +37% to +5% on average (λ = 10⁻⁴), PU's raw level at q = 0.7 is 0.95–1.11 of the truth, and the AUC falls by about 0.013.
 - **Homologue-group folds** (`src.benchmark.homologue_groups`, `fold_of_groups`, `run_condition(fold=…)`): worksheet D18 groups, 5 folds, every roster neuron held out once per seed.
+- **Fold benchmark** (`scripts/benchmark_folds.py`, `scripts/benchmark_folds_summary.py`, `reports/benchmark_folds.md`): 5 homologue-group folds, held-out target features from the training graph, λ = 10⁻⁴, 3 seeds, synapse and connection dropout at q = 0.7.
+  - One held-out type (ExR8, output mostly outside the CX) got a standardised feature value of about 2,273 and drove one fold's offset to +88%. Held-out numerics are now clipped to the training range (`design(clip=True)`). With clipping, fold offsets are 0.83–1.27 and the pooled offset +3% to +5%.
+  - PU at the true c restores the pooled level to 0.99–1.03 of the no-thinning level, in both dropout modes.
+  - Its Brier score is still *higher* than naive in 13 of 15 folds in both modes (sign test p = 0.007), so the SCAR violation of synapse dropout does not explain it. Under connection dropout PU matches the model fitted on all labels (Brier 0.003986 vs 0.003988), and the naive model beats both: on held-out types, shrinking predictions toward zero lowers squared error. Under synapse dropout PU is also worse than that model (14 of 15 folds), a cost consistent with the SCAR violation. At this q and λ, level and reliability are the informative measures for H2; Brier should be compared with the fully labelled model as well as with naive.
 - **H3 on real data** (`src/ranking.py`, `scripts/h3_real.py`, `reports/h3_real.md`, `reports/h3_top_unrecorded.csv`): no split, λ = 10⁻⁴, c from 0.9 to 0.5.
   - PU keeps the naive ranking of unlabelled pairs: Spearman about 0.999 or higher, top-1000 overlap 0.95–0.99. PU mainly rescales; a ranked list does not tell the models apart, so the headline stays calibration (H2).
   - 37–38% of the top 1,000 unlabelled pairs have 1–9 recorded synapses, against 3.1% overall. The top of the list is dominated by same-type pairs (EPG→EPG, ER3d→ER3d, Delta7→Delta7).
@@ -225,3 +230,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-14: benchmark levels against a same-split baseline; λ sensitivity; π and training P(s=1) stored per run; review nits.
 - 2026-10-15: λ by inner CV; the held-out-type offset traced to a target-side feature shift (`target_graph` option); homologue-group folds; review nits.
 - 2026-10-15: H3 on real data (ranking agreement, sampled ranked list); H4 pilot against the hemibrain with a type-group cluster bootstrap; H3 statistics, `keep_scores` and `clip` options in benchmark runs.
+- 2026-10-15: fold benchmark (homologue-group folds, clipping of held-out numerics, 3 seeds, both dropout modes); 3-fold 1-SE λ selection; PU's higher Brier is not explained by the SCAR violation and is consistent with shrinkage paying off on held-out types (q = 0.7, λ = 10⁻⁴).

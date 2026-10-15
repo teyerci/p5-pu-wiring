@@ -60,6 +60,8 @@ def test_run_condition_on_a_synthetic_roster():
     assert m["by_true_stratum"]["0"]["mean_y"] == 0.0 and m["by_true_stratum"]["10–19"]["mean_y"] == 1.0
     cv = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam="cv", test_share=0.25, exclude=("type_i",))
     assert cv["lambda"] in cv["lambda_cv_losses"] and cv["excluded"] == ["type_i"]
+    cv3 = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam="cv3", test_share=0.25)
+    assert cv3["lambda"] in cv3["lambda_cv_losses"] and set(cv3["lambda_cv_se"]) == set(cv3["lambda_cv_losses"])
     with pytest.raises(ValueError, match="unknown feature columns"):
         run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam=0.1, test_share=0.25, exclude=("typ_i",))
     folds = [run_condition(neurons, er, ids, 1.0, seed=2, per_positive=3, lam=0.1, fold=k, n_folds=3) for k in range(3)]
@@ -144,3 +146,18 @@ def test_homologue_groups_and_folds_cover_each_neuron_once_and_keep_types_whole(
     sizes = np.bincount(f.groupby(g).first(), minlength=3)            # groups per fold
     assert sizes.max() - sizes.min() <= 1 and sizes.sum() == g.nunique()
     assert (fold_of_groups(g, 3, seed=0) == f).all()                   # seeded
+
+
+def test_kfold_lambda_one_se_rule_by_construction():
+    import numpy as np
+    from src.benchmark import LAMBDA_GRID, select_lambda_kfold
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(3000, 3))
+    s = (rng.random(3000) < 1 / (1 + np.exp(-(X[:, 0] - 3)))).astype(float)
+    groups = np.arange(3000) % 60
+    lam, mean, se = select_lambda_kfold(X, s, np.ones(3000), groups, n_inner=3)
+    best = min(mean, key=mean.get)
+    assert lam in LAMBDA_GRID and lam >= best and mean[lam] <= mean[best] + se[best]
+    assert all(not (l > lam and mean[l] <= mean[best] + se[best]) for l in LAMBDA_GRID)   # the largest such λ
+    with pytest.raises(ValueError):
+        select_lambda_kfold(X, s, np.ones(3000), groups, n_inner=1)

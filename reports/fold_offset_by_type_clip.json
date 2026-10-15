@@ -1,0 +1,742 @@
+[
+ {
+  "fold": 0,
+  "test_sources": 461,
+  "source_types": 47,
+  "offset": 0.9347143593544972,
+  "auc_y": 0.9066868513119682,
+  "true_connections_weighted": 5361.0,
+  "excess_weighted": -349.99631950053924,
+  "top_source_types": [
+   {
+    "pre_type": "ExR5",
+    "excess": 131.80339010660185,
+    "true": 409.0,
+    "pred": 540.8033901066018,
+    "excess_share_of_true_total": 0.02458559785610928
+   },
+   {
+    "pre_type": "FB1G",
+    "excess": 68.70415460276529,
+    "true": 229.0,
+    "pred": 297.70415460276524,
+    "excess_share_of_true_total": 0.012815548331051163
+   },
+   {
+    "pre_type": "CB4171",
+    "excess": 49.6574711213242,
+    "true": 82.0,
+    "pred": 131.6574711213242,
+    "excess_share_of_true_total": 0.009262725446992016
+   },
+   {
+    "pre_type": "PFGs",
+    "excess": 49.36610319908676,
+    "true": 157.0,
+    "pred": 206.36610319908678,
+    "excess_share_of_true_total": 0.009208375899848305
+   },
+   {
+    "pre_type": "FB4Q_b",
+    "excess": 25.409641063117355,
+    "true": 17.0,
+    "pred": 42.409641063117355,
+    "excess_share_of_true_total": 0.0047397203997607456
+   },
+   {
+    "pre_type": "FB1I,FB1J",
+    "excess": 17.752850750436217,
+    "true": 43.0,
+    "pred": 60.75285075043621,
+    "excess_share_of_true_total": 0.0033114812069457594
+   },
+   {
+    "pre_type": "FS4A",
+    "excess": 16.267349832415835,
+    "true": 0.0,
+    "pred": 16.267349832415835,
+    "excess_share_of_true_total": 0.0030343872099264754
+   },
+   {
+    "pre_type": "FB1E",
+    "excess": 15.513459991098664,
+    "true": 39.0,
+    "pred": 54.51345999109866,
+    "excess_share_of_true_total": 0.0028937623561086858
+   }
+  ],
+  "bottom_source_types": [
+   {
+    "pre_type": "hDeltaK",
+    "excess": -98.95291384055363,
+    "true": 411.0,
+    "pred": 312.0470861594464,
+    "excess_share_of_true_total": -0.018457920880536025
+   },
+   {
+    "pre_type": "hDeltaD",
+    "excess": -121.18792424704236,
+    "true": 252.0,
+    "pred": 130.81207575295764,
+    "excess_share_of_true_total": -0.022605469921104713
+   },
+   {
+    "pre_type": "PFNa",
+    "excess": -133.23409900473249,
+    "true": 527.0,
+    "pred": 393.7659009952675,
+    "excess_share_of_true_total": -0.024852471368164986
+   }
+  ],
+  "top_target_types": [
+   {
+    "post_type": "hDeltaB",
+    "excess": 100.16857028422841,
+    "true": 40.0,
+    "pred": 140.16857028422842,
+    "excess_share_of_true_total": 0.018684680150014624
+   },
+   {
+    "post_type": "FC2B",
+    "excess": 87.66818582053352,
+    "true": 93.0,
+    "pred": 180.66818582053352,
+    "excess_share_of_true_total": 0.01635295389302994
+   },
+   {
+    "post_type": "FB5R,FB5U",
+    "excess": 75.20405943376068,
+    "true": 1.0,
+    "pred": 76.20405943376068,
+    "excess_share_of_true_total": 0.0140279909408246
+   },
+   {
+    "post_type": "ExR1",
+    "excess": 65.23801457349798,
+    "true": 37.0,
+    "pred": 102.23801457349796,
+    "excess_share_of_true_total": 0.01216900103963775
+   },
+   {
+    "post_type": "FB5A",
+    "excess": 59.75617761067405,
+    "true": 16.0,
+    "pred": 75.75617761067404,
+    "excess_share_of_true_total": 0.01114646103538035
+   },
+   {
+    "post_type": "hDeltaJ",
+    "excess": 55.06593038534342,
+    "true": 5.0,
+    "pred": 60.06593038534342,
+    "excess_share_of_true_total": 0.010271578135673087
+   },
+   {
+    "post_type": "vDeltaM",
+    "excess": 54.66330045976348,
+    "true": 0.0,
+    "pred": 54.66330045976348,
+    "excess_share_of_true_total": 0.010196474624093168
+   },
+   {
+    "post_type": "hDeltaK",
+    "excess": 51.61016267407933,
+    "true": 65.0,
+    "pred": 116.61016267407933,
+    "excess_share_of_true_total": 0.009626965617250387
+   }
+  ]
+ },
+ {
+  "fold": 1,
+  "test_sources": 522,
+  "source_types": 46,
+  "offset": 0.9614908788005113,
+  "auc_y": 0.9362175336358433,
+  "true_connections_weighted": 5229.0,
+  "excess_weighted": -201.3641947521279,
+  "top_source_types": [
+   {
+    "pre_type": "ER1",
+    "excess": 174.58001035793112,
+    "true": 162.0,
+    "pred": 336.58001035793114,
+    "excess_share_of_true_total": 0.03338688283762309
+   },
+   {
+    "pre_type": "FC1A,FC1B,FC1F",
+    "excess": 100.78519351979408,
+    "true": 135.0,
+    "pred": 235.78519351979406,
+    "excess_share_of_true_total": 0.019274276825357445
+   },
+   {
+    "pre_type": "FB3B,FB3C,FB3E",
+    "excess": 93.22855754786059,
+    "true": 64.0,
+    "pred": 157.2285575478606,
+    "excess_share_of_true_total": 0.01782913703344054
+   },
+   {
+    "pre_type": "FC3",
+    "excess": 54.298444934599566,
+    "true": 340.0,
+    "pred": 394.29844493459956,
+    "excess_share_of_true_total": 0.01038409732924069
+   },
+   {
+    "pre_type": "PFL3",
+    "excess": 49.32256766153045,
+    "true": 0.0,
+    "pred": 49.32256766153044,
+    "excess_share_of_true_total": 0.009432504811920147
+   },
+   {
+    "pre_type": "vDeltaJ",
+    "excess": 32.032624060638774,
+    "true": 12.0,
+    "pred": 44.03262406063877,
+    "excess_share_of_true_total": 0.006125956026130957
+   },
+   {
+    "pre_type": "FB5I",
+    "excess": 29.95482462620161,
+    "true": 175.0,
+    "pred": 204.9548246262016,
+    "excess_share_of_true_total": 0.00572859526223018
+   },
+   {
+    "pre_type": "FB2A",
+    "excess": 29.60279805700663,
+    "true": 18.0,
+    "pred": 47.60279805700663,
+    "excess_share_of_true_total": 0.0056612732945126466
+   }
+  ],
+  "bottom_source_types": [
+   {
+    "pre_type": "ER3a_a,ER3a_d",
+    "excess": -97.0298486093477,
+    "true": 387.0,
+    "pred": 289.9701513906523,
+    "excess_share_of_true_total": -0.018556100326897626
+   },
+   {
+    "pre_type": "ER3d",
+    "excess": -169.402871512622,
+    "true": 923.0,
+    "pred": 753.5971284873781,
+    "excess_share_of_true_total": -0.03239680082475081
+   },
+   {
+    "pre_type": "PEN_b(PEN2)",
+    "excess": -239.4103101435143,
+    "true": 538.0,
+    "pred": 298.58968985648573,
+    "excess_share_of_true_total": -0.045785104253875365
+   }
+  ],
+  "top_target_types": [
+   {
+    "post_type": "ER2",
+    "excess": 216.74816874943852,
+    "true": 4.0,
+    "pred": 220.74816874943855,
+    "excess_share_of_true_total": 0.04145117015671037
+   },
+   {
+    "post_type": "EL",
+    "excess": 194.36483072508116,
+    "true": 110.0,
+    "pred": 304.36483072508116,
+    "excess_share_of_true_total": 0.03717055473801514
+   },
+   {
+    "post_type": "hDeltaA",
+    "excess": 163.23521609322063,
+    "true": 7.0,
+    "pred": 170.23521609322063,
+    "excess_share_of_true_total": 0.031217291278106834
+   },
+   {
+    "post_type": "ER4d",
+    "excess": 126.62452190566475,
+    "true": 0.0,
+    "pred": 126.62452190566475,
+    "excess_share_of_true_total": 0.024215819832791117
+   },
+   {
+    "post_type": "EPG",
+    "excess": 124.2593061404783,
+    "true": 198.0,
+    "pred": 322.2593061404783,
+    "excess_share_of_true_total": 0.023763493237804228
+   },
+   {
+    "post_type": "ER3w",
+    "excess": 118.55356406302121,
+    "true": 0.0,
+    "pred": 118.55356406302121,
+    "excess_share_of_true_total": 0.02267232053222819
+   },
+   {
+    "post_type": "IbSpsP",
+    "excess": 73.33746999188926,
+    "true": 3.0,
+    "pred": 76.33746999188926,
+    "excess_share_of_true_total": 0.014025142473109441
+   },
+   {
+    "post_type": "ER5",
+    "excess": 72.97227070546842,
+    "true": 0.0,
+    "pred": 72.97227070546842,
+    "excess_share_of_true_total": 0.013955301339733873
+   }
+  ]
+ },
+ {
+  "fold": 2,
+  "test_sources": 589,
+  "source_types": 47,
+  "offset": 1.1416687147073896,
+  "auc_y": 0.9234603084186022,
+  "true_connections_weighted": 8820.0,
+  "excess_weighted": 1249.5180637191775,
+  "top_source_types": [
+   {
+    "pre_type": "EPG",
+    "excess": 1106.6349961341527,
+    "true": 895.0,
+    "pred": 2001.634996134153,
+    "excess_share_of_true_total": 0.12546882042337332
+   },
+   {
+    "pre_type": "Delta7",
+    "excess": 365.8808092546292,
+    "true": 794.0,
+    "pred": 1159.8808092546292,
+    "excess_share_of_true_total": 0.041483084949504444
+   },
+   {
+    "pre_type": "PFNm",
+    "excess": 356.79164748937006,
+    "true": 153.0,
+    "pred": 509.79164748937006,
+    "excess_share_of_true_total": 0.04045256774255897
+   },
+   {
+    "pre_type": "FB5AB",
+    "excess": 318.5026533484308,
+    "true": 304.0,
+    "pred": 622.5026533484307,
+    "excess_share_of_true_total": 0.03611141194426653
+   },
+   {
+    "pre_type": "vDeltaL",
+    "excess": 76.68001764115174,
+    "true": 63.0,
+    "pred": 139.68001764115172,
+    "excess_share_of_true_total": 0.008693879551150991
+   },
+   {
+    "pre_type": "PEG",
+    "excess": 66.88094220126457,
+    "true": 120.0,
+    "pred": 186.8809422012646,
+    "excess_share_of_true_total": 0.007582873265449498
+   },
+   {
+    "pre_type": "ExR6",
+    "excess": 54.72690695045005,
+    "true": 178.0,
+    "pred": 232.72690695045003,
+    "excess_share_of_true_total": 0.006204864733611117
+   },
+   {
+    "pre_type": "FB4H",
+    "excess": 51.59491075320606,
+    "true": 235.0,
+    "pred": 286.5949107532061,
+    "excess_share_of_true_total": 0.005849763123946265
+   }
+  ],
+  "bottom_source_types": [
+   {
+    "pre_type": "FB5V",
+    "excess": -134.90326856191416,
+    "true": 410.0,
+    "pred": 275.09673143808584,
+    "excess_share_of_true_total": -0.015295155165749905
+   },
+   {
+    "pre_type": "PFNv",
+    "excess": -139.79173701905296,
+    "true": 332.0,
+    "pred": 192.20826298094704,
+    "excess_share_of_true_total": -0.015849403290142058
+   },
+   {
+    "pre_type": "hDeltaG",
+    "excess": -151.43493055801207,
+    "true": 338.0,
+    "pred": 186.56506944198793,
+    "excess_share_of_true_total": -0.017169493260545586
+   }
+  ],
+  "top_target_types": [
+   {
+    "post_type": "EPG",
+    "excess": 1017.9264250442811,
+    "true": 500.0,
+    "pred": 1517.9264250442811,
+    "excess_share_of_true_total": 0.11541115930207269
+   },
+   {
+    "post_type": "Delta7",
+    "excess": 694.4189946999999,
+    "true": 133.0,
+    "pred": 827.4189947,
+    "excess_share_of_true_total": 0.07873231232426302
+   },
+   {
+    "post_type": "ExR1",
+    "excess": 386.191426432714,
+    "true": 4.0,
+    "pred": 390.19142643271397,
+    "excess_share_of_true_total": 0.04378587601277937
+   },
+   {
+    "post_type": "ER3d",
+    "excess": 239.42990356371328,
+    "true": 1.0,
+    "pred": 240.42990356371328,
+    "excess_share_of_true_total": 0.027146247569582005
+   },
+   {
+    "post_type": "hDeltaL",
+    "excess": 195.70652059583665,
+    "true": 101.0,
+    "pred": 296.70652059583665,
+    "excess_share_of_true_total": 0.022188947913360166
+   },
+   {
+    "post_type": "PFNm",
+    "excess": 186.4956328593439,
+    "true": 56.0,
+    "pred": 242.49563285934394,
+    "excess_share_of_true_total": 0.021144629575889334
+   },
+   {
+    "post_type": "ER4d",
+    "excess": 182.00221017376828,
+    "true": 2.0,
+    "pred": 184.00221017376828,
+    "excess_share_of_true_total": 0.020635171221515678
+   },
+   {
+    "post_type": "EL",
+    "excess": 174.69337761096347,
+    "true": 210.0,
+    "pred": 384.69337761096347,
+    "excess_share_of_true_total": 0.01980650539806842
+   }
+  ]
+ },
+ {
+  "fold": 3,
+  "test_sources": 610,
+  "source_types": 47,
+  "offset": 0.9904931069033522,
+  "auc_y": 0.9540451551853081,
+  "true_connections_weighted": 7058.0,
+  "excess_weighted": -67.09965147613926,
+  "top_source_types": [
+   {
+    "pre_type": "FB5A",
+    "excess": 494.6865412252893,
+    "true": 590.0,
+    "pred": 1084.6865412252894,
+    "excess_share_of_true_total": 0.0700887703634584
+   },
+   {
+    "pre_type": "vDeltaM",
+    "excess": 148.19059290061267,
+    "true": 67.0,
+    "pred": 215.19059290061267,
+    "excess_share_of_true_total": 0.020996116874555493
+   },
+   {
+    "pre_type": "vDeltaK",
+    "excess": 84.27839925996622,
+    "true": 72.0,
+    "pred": 156.27839925996622,
+    "excess_share_of_true_total": 0.011940832992344321
+   },
+   {
+    "pre_type": "FS2",
+    "excess": 56.93302063643821,
+    "true": 1.0,
+    "pred": 57.93302063643821,
+    "excess_share_of_true_total": 0.008066452342935421
+   },
+   {
+    "pre_type": "FS3",
+    "excess": 35.22394172245736,
+    "true": 0.0,
+    "pred": 35.22394172245736,
+    "excess_share_of_true_total": 0.00499064065209087
+   },
+   {
+    "pre_type": "FC2C",
+    "excess": 32.77495975925096,
+    "true": 115.0,
+    "pred": 147.77495975925098,
+    "excess_share_of_true_total": 0.004643661059684182
+   },
+   {
+    "pre_type": "FB1B",
+    "excess": 29.899700146009483,
+    "true": 10.0,
+    "pred": 39.89970014600948,
+    "excess_share_of_true_total": 0.004236285087278193
+   },
+   {
+    "pre_type": "FB4A",
+    "excess": 27.88676755766861,
+    "true": 42.0,
+    "pred": 69.8867675576686,
+    "excess_share_of_true_total": 0.003951086364078862
+   }
+  ],
+  "bottom_source_types": [
+   {
+    "pre_type": "LNO1",
+    "excess": -96.25047105117481,
+    "true": 133.0,
+    "pred": 36.74952894882519,
+    "excess_share_of_true_total": -0.013637074390928707
+   },
+   {
+    "pre_type": "ER4m",
+    "excess": -176.5148538526481,
+    "true": 795.0,
+    "pred": 618.4851461473519,
+    "excess_share_of_true_total": -0.02500918870114028
+   },
+   {
+    "pre_type": "ER5",
+    "excess": -228.50788578687917,
+    "true": 671.0,
+    "pred": 442.4921142131208,
+    "excess_share_of_true_total": -0.03237572765470093
+   }
+  ],
+  "top_target_types": [
+   {
+    "post_type": "hDeltaB",
+    "excess": 245.04121885457232,
+    "true": 35.0,
+    "pred": 280.0412188545724,
+    "excess_share_of_true_total": 0.03471822313042963
+   },
+   {
+    "post_type": "ER4d",
+    "excess": 132.2081160395572,
+    "true": 0.0,
+    "pred": 132.2081160395572,
+    "excess_share_of_true_total": 0.01873166846692508
+   },
+   {
+    "post_type": "ER3d",
+    "excess": 115.42868344342938,
+    "true": 19.0,
+    "pred": 134.42868344342935,
+    "excess_share_of_true_total": 0.01635430482338189
+   },
+   {
+    "post_type": "FB4Z",
+    "excess": 112.3158012277057,
+    "true": 0.0,
+    "pred": 112.31580122770572,
+    "excess_share_of_true_total": 0.01591326172112577
+   },
+   {
+    "post_type": "PEN_b(PEN2)",
+    "excess": 96.96064166429518,
+    "true": 0.0,
+    "pred": 96.96064166429517,
+    "excess_share_of_true_total": 0.01373769363336571
+   },
+   {
+    "post_type": "vDeltaF",
+    "excess": 72.60783421067741,
+    "true": 0.0,
+    "pred": 72.60783421067741,
+    "excess_share_of_true_total": 0.010287310032683112
+   },
+   {
+    "post_type": "FB5R,FB5U",
+    "excess": 72.2291859050853,
+    "true": 0.0,
+    "pred": 72.2291859050853,
+    "excess_share_of_true_total": 0.010233661930445637
+   },
+   {
+    "post_type": "FC1A,FC1B,FC1F",
+    "excess": 64.87842272526802,
+    "true": 0.0,
+    "pred": 64.87842272526801,
+    "excess_share_of_true_total": 0.009192182307348827
+   }
+  ]
+ },
+ {
+  "fold": 4,
+  "test_sources": 693,
+  "source_types": 46,
+  "offset": 1.160417227432728,
+  "auc_y": 0.93290188521476,
+  "true_connections_weighted": 5657.0,
+  "excess_weighted": 907.4802555869417,
+  "top_source_types": [
+   {
+    "pre_type": "PFNp",
+    "excess": 920.8796839874362,
+    "true": 161.0,
+    "pred": 1081.8796839874362,
+    "excess_share_of_true_total": 0.16278587307538206
+   },
+   {
+    "pre_type": "EL",
+    "excess": 214.85946284320656,
+    "true": 47.0,
+    "pred": 261.85946284320653,
+    "excess_share_of_true_total": 0.0379811671987284
+   },
+   {
+    "pre_type": "PFR",
+    "excess": 200.6924674336264,
+    "true": 144.0,
+    "pred": 344.6924674336264,
+    "excess_share_of_true_total": 0.035476837092739334
+   },
+   {
+    "pre_type": "vDeltaA_a",
+    "excess": 168.42009365689708,
+    "true": 81.0,
+    "pred": 249.42009365689708,
+    "excess_share_of_true_total": 0.029771980494413486
+   },
+   {
+    "pre_type": "SA2",
+    "excess": 57.14195670057853,
+    "true": 15.0,
+    "pred": 72.14195670057853,
+    "excess_share_of_true_total": 0.010101106010355052
+   },
+   {
+    "pre_type": "vDeltaA_b",
+    "excess": 39.89734329962447,
+    "true": 86.0,
+    "pred": 125.89734329962447,
+    "excess_share_of_true_total": 0.007052738783741288
+   },
+   {
+    "pre_type": "FB2C",
+    "excess": 33.34124162150153,
+    "true": 30.0,
+    "pred": 63.34124162150154,
+    "excess_share_of_true_total": 0.005893802655382982
+   },
+   {
+    "pre_type": "vDeltaI_b",
+    "excess": 31.18671720621345,
+    "true": 32.0,
+    "pred": 63.18671720621346,
+    "excess_share_of_true_total": 0.005512942762279203
+   }
+  ],
+  "bottom_source_types": [
+   {
+    "pre_type": "FB6M",
+    "excess": -82.7743363368451,
+    "true": 128.0,
+    "pred": 45.2256636631549,
+    "excess_share_of_true_total": -0.014632196630165299
+   },
+   {
+    "pre_type": "PEN_a(PEN1)",
+    "excess": -86.59048294329767,
+    "true": 461.0,
+    "pred": 374.4095170567023,
+    "excess_share_of_true_total": -0.015306785035053503
+   },
+   {
+    "pre_type": "ER4d",
+    "excess": -186.06881832102601,
+    "true": 700.0,
+    "pred": 513.931181678974,
+    "excess_share_of_true_total": -0.03289178333410395
+   }
+  ],
+  "top_target_types": [
+   {
+    "post_type": "PFNp",
+    "excess": 450.66581773077166,
+    "true": 1.0,
+    "pred": 451.66581773077166,
+    "excess_share_of_true_total": 0.0796651613453724
+   },
+   {
+    "post_type": "EL",
+    "excess": 182.67873352709722,
+    "true": 184.0,
+    "pred": 366.6787335270973,
+    "excess_share_of_true_total": 0.03229251078789062
+   },
+   {
+    "post_type": "PFR",
+    "excess": 165.33136099881457,
+    "true": 109.0,
+    "pred": 274.3313609988146,
+    "excess_share_of_true_total": 0.029225978610361424
+   },
+   {
+    "post_type": "ExR1",
+    "excess": 153.18650932914625,
+    "true": 35.0,
+    "pred": 188.18650932914625,
+    "excess_share_of_true_total": 0.02707910718210116
+   },
+   {
+    "post_type": "FC2B",
+    "excess": 131.33854980214704,
+    "true": 97.0,
+    "pred": 228.33854980214704,
+    "excess_share_of_true_total": 0.023216996606354436
+   },
+   {
+    "post_type": "ER2",
+    "excess": 123.03724182790393,
+    "true": 0.0,
+    "pred": 123.03724182790393,
+    "excess_share_of_true_total": 0.021749556625049307
+   },
+   {
+    "post_type": "hDeltaI",
+    "excess": 119.68381188044238,
+    "true": 53.0,
+    "pred": 172.68381188044236,
+    "excess_share_of_true_total": 0.021156763634513413
+   },
+   {
+    "post_type": "hDeltaJ",
+    "excess": 98.34413269530775,
+    "true": 1.0,
+    "pred": 99.34413269530775,
+    "excess_share_of_true_total": 0.01738450286287922
+   }
+  ]
+ }
+]
