@@ -1,0 +1,277 @@
+{
+ "malecns_totals": {
+  "downstream": 294794753,
+  "upstream_post_sites": 130413767,
+  "tbars": 42658913
+ },
+ "malecns_check_repo_rule_connections_equals_cache_region": 1.0,
+ "malecns_connections": {
+  "neurons": 165122,
+  "literal_top_label_unspecified_by_label": {
+   "Optic-unspecified(L)": 358,
+   "CentralBrain-unspecified": 350,
+   "VNC-unspecified": 230,
+   "Optic-unspecified(R)": 37,
+   "<unspecified>": 12
+  },
+  "literal_unknown": 333,
+  "repo_region_of_those_neurons_by_kind": {
+   "optic": 363,
+   "central": 264,
+   "nerve_cord": 229,
+   "unknown": 131
+  },
+  "repo_region_of_those_neurons_top12": {
+   "ME(L)": 228,
+   "GNG": 60,
+   "LA(L)": 54,
+   "LO(L)": 44,
+   "mVAC(T2)(L)": 29,
+   "mVAC(T2)(R)": 21,
+   "ANm": 20,
+   "mVAC(T3)(L)": 20,
+   "SAD": 18,
+   "LegNp(T3)(R)": 18,
+   "mVAC(T1)(L)": 18,
+   "PLP(L)": 17
+  },
+  "repo_unknown_total": 464,
+  "repo_region_by_literal_label": {
+   "CentralBrain-unspecified": {
+    "by_kind": {
+     "central": 240,
+     "unknown": 81,
+     "nerve_cord": 22,
+     "optic": 7
+    },
+    "top8": {
+     "GNG": 54,
+     "SMP(R)": 17,
+     "SAD": 17,
+     "SMP(L)": 14,
+     "LAL(L)": 13,
+     "PLP(L)": 13,
+     "FLA(R)": 12,
+     "IPS(L)": 12
+    }
+   },
+   "Optic-unspecified(L)": {
+    "by_kind": {
+     "optic": 339,
+     "central": 10,
+     "unknown": 9
+    },
+    "top8": {
+     "ME(L)": 226,
+     "LA(L)": 54,
+     "LO(L)": 44,
+     "AME(L)": 11,
+     "LOP(L)": 4,
+     "PLP(L)": 4,
+     "AOTU(L)": 4,
+     "PVLP(L)": 2
+    }
+   },
+   "VNC-unspecified": {
+    "by_kind": {
+     "nerve_cord": 206,
+     "central": 13,
+     "unknown": 11
+    },
+    "top8": {
+     "mVAC(T2)(L)": 29,
+     "mVAC(T2)(R)": 21,
+     "mVAC(T3)(L)": 20,
+     "mVAC(T1)(L)": 18,
+     "LegNp(T3)(R)": 18,
+     "ANm": 15,
+     "mVAC(T1)(R)": 12,
+     "LegNp(T3)(L)": 12
+    }
+   },
+   "<unspecified>": {
+    "by_kind": {
+     "unknown": 10,
+     "nerve_cord": 1,
+     "central": 1
+    },
+    "top8": {
+     "CRN": 1,
+     "PRW": 1
+    }
+   },
+   "Optic-unspecified(R)": {
+    "by_kind": {
+     "unknown": 20,
+     "optic": 17
+    },
+    "top8": {
+     "ME(R)": 10,
+     "LA(R)": 6,
+     "LO(R)": 1
+    }
+   }
+  },
+  "repo_region_share_median_by_literal_label": {
+   "CentralBrain-unspecified": 0.2402938090241343,
+   "Optic-unspecified(L)": 0.31569965870307165,
+   "VNC-unspecified": 0.23363914373088684,
+   "<unspecified>": 0.25806451612903225,
+   "Optic-unspecified(R)": 0.3697478991596639
+  },
+  "brain_subset": {
+   "literal + proposed CSV rows (Optic-/CentralBrain-unspecified in brain)": 142739,
+   "literal, unspecified labels rejected -> unknown": 141994,
+   "repo rule": 142621
+  }
+ },
+ "malecns_sites": {
+  "neurons": 165122,
+  "literal_top_label_unspecified_by_label": {
+   "Optic-unspecified(L)": 311,
+   "CentralBrain-unspecified": 295,
+   "VNC-unspecified": 207,
+   "Optic-unspecified(R)": 25,
+   "<unspecified>": 11
+  },
+  "literal_unknown": 333,
+  "repo_region_of_those_neurons_by_kind": {
+   "optic": 303,
+   "central": 211,
+   "nerve_cord": 202,
+   "unknown": 133
+  },
+  "repo_region_of_those_neurons_top12": {
+   "ME(L)": 191,
+   "GNG": 55,
+   "LA(L)": 46,
+   "LO(L)": 31,
+   "mVAC(T2)(R)": 25,
+   "mVAC(T2)(L)": 24,
+   "SAD": 24,
+   "LTct": 18,
+   "LOP(L)": 17,
+   "mVAC(T3)(L)": 15,
+   "ANm": 15,
+   "LegNp(T3)(R)": 14
+  },
+  "repo_unknown_total": 466,
+  "repo_region_by_literal_label": {
+   "CentralBrain-unspecified": {
+    "by_kind": {
+     "central": 192,
+     "unknown": 82,
+     "nerve_cord": 19,
+     "optic": 2
+    },
+    "top8": {
+     "GNG": 51,
+     "SAD": 22,
+     "SMP(R)": 13,
+     "SMP(L)": 12,
+     "FLA(R)": 11,
+     "PRW": 11,
+     "LAL(L)": 9,
+     "IPS(L)": 8
+    }
+   },
+   "VNC-unspecified": {
+    "by_kind": {
+     "nerve_cord": 182,
+     "central": 13,
+     "unknown": 12
+    },
+    "top8": {
+     "mVAC(T2)(R)": 25,
+     "mVAC(T2)(L)": 24,
+     "mVAC(T3)(L)": 15,
+     "LegNp(T3)(R)": 14,
+     "mVAC(T1)(L)": 13,
+     "ANm": 13,
+     "LTct": 12,
+     "Ov(L)": 11
+    }
+   },
+   "Optic-unspecified(L)": {
+    "by_kind": {
+     "optic": 296,
+     "unknown": 10,
+     "central": 5
+    },
+    "top8": {
+     "ME(L)": 191,
+     "LA(L)": 46,
+     "LO(L)": 31,
+     "LOP(L)": 17,
+     "AME(L)": 11,
+     "PLP(L)": 5
+    }
+   },
+   "<unspecified>": {
+    "by_kind": {
+     "unknown": 9,
+     "nerve_cord": 1,
+     "central": 1
+    },
+    "top8": {
+     "CRN": 1,
+     "PRW": 1
+    }
+   },
+   "Optic-unspecified(R)": {
+    "by_kind": {
+     "unknown": 20,
+     "optic": 5
+    },
+    "top8": {
+     "LA(R)": 3,
+     "ME(R)": 2
+    }
+   }
+  },
+  "repo_region_share_median_by_literal_label": {
+   "CentralBrain-unspecified": 0.2556818181818182,
+   "VNC-unspecified": 0.23372781065088757,
+   "Optic-unspecified(L)": 0.3333333333333333,
+   "<unspecified>": 0.275,
+   "Optic-unspecified(R)": 0.4
+  },
+  "brain_subset": {
+   "literal + proposed CSV rows (Optic-/CentralBrain-unspecified in brain)": 142507,
+   "literal, unspecified labels rejected -> unknown": 141876,
+   "repo rule": 142390
+  }
+ },
+ "fafb": {
+  "neurons": 139262,
+  "labels_outside_neuropils": [
+   "None"
+  ],
+  "literal_top_label_unassigned": 6,
+  "repo_region_of_those_by_kind": {
+   "central": 5,
+   "unknown": 1
+  },
+  "repo_region_of_those_top12": {
+   "GNG": 4,
+   "AMMC_L": 1
+  },
+  "repo_rule_check_equals_cache_region": 1.0
+ },
+ "fafb_pre_post_totals_all_ids": {
+  "pre": 130054535,
+  "post": 130054535
+ },
+ "fafb_output_count_check": {
+  "neurons": 138005,
+  "pre_count_total": 121905410,
+  "out_to_proofread_total": 54492922,
+  "ratio_quantiles": {
+   "0.01": 1.144,
+   "0.1": 1.384,
+   "0.5": 1.92,
+   "0.9": 3.356
+  },
+  "share_pre_count_at_least_out_to_proofread": 1.0
+ }
+}
