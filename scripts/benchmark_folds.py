@@ -11,8 +11,9 @@ held-out numerics limited to the training range (`clip=True`, see reports/benchm
 pass "noclip" as the third argument to turn it off).
 Pooled level = Σ_folds weight · mean P(y=1) / Σ_folds weight · true rate, with the
 weight of a fold's evaluation set. Writes reports/benchmark_folds_<lam>[_noclip].json and
-prints the summary. Usage: python scripts/benchmark_folds.py [lam] [n_seeds] [clip|noclip] [synapse|connection] [tag]
-(the dropout mode of the q = 0.7 runs; "connection" is the SCAR control and adds _connection to the file name)
+prints the summary. Usage: python scripts/benchmark_folds.py [lam] [seeds] [clip|noclip] [synapse|connection] [tag] [q=Q]
+(seeds: a count n for seeds 0..n-1, or a range "a-b"; the dropout mode of the thinned runs, where "connection" is the
+SCAR control and adds _connection to the file name; q=Q sets the thinned q, default 0.7, and adds _q<Q> otherwise)
 """
 import json
 import sys
@@ -26,9 +27,15 @@ from src import fetch_fafb                       # noqa: E402
 from src.benchmark import run_condition          # noqa: E402
 from src.pairs import cx_roster                  # noqa: E402
 
+Q_ARGS = [a for a in sys.argv[1:] if a.startswith("q=")]
+Q = float(Q_ARGS[-1][2:]) if Q_ARGS else 0.7
+if not 0 < Q < 1:
+    raise SystemExit("q=Q must lie in (0, 1); the unthinned q = 1 runs are always included")
+sys.argv = [a for a in sys.argv if not a.startswith("q=")]
 LAM = "cv" if len(sys.argv) < 2 else sys.argv[1] if sys.argv[1] in ("cv", "cv3", "cv3h") else float(sys.argv[1])
 INNER = "homologue" if LAM == "cv3h" else "source"         # cv3h: cv3 with inner folds by homologue group
-SEEDS = range(int(sys.argv[2]) if len(sys.argv) > 2 else 1)
+S_ARG = sys.argv[2] if len(sys.argv) > 2 else "1"
+SEEDS = range(int(S_ARG.split("-")[0]), int(S_ARG.split("-")[1]) + 1) if "-" in S_ARG else range(int(S_ARG))
 CLIP = not (len(sys.argv) > 3 and sys.argv[3] == "noclip")
 MODE = sys.argv[4] if len(sys.argv) > 4 else "synapse"
 TAG = "_" + sys.argv[5] if len(sys.argv) > 5 else ""     # optional suffix, so a rerun keeps earlier files
@@ -36,11 +43,11 @@ N_FOLDS = 5
 neurons, edgeroi = fetch_fafb.load_neurons(), fetch_fafb.load_edgeroi()
 ids = cx_roster(neurons)
 er = edgeroi[edgeroi["pre_id"].isin(ids) | edgeroi["post_id"].isin(ids)].reset_index(drop=True)
-OUT = ROOT / "reports" / f"benchmark_folds_{LAM if isinstance(LAM, str) else format(LAM, 'g')}{'' if CLIP else '_noclip'}{'' if MODE == 'synapse' else '_' + MODE}{TAG}.json"
+OUT = ROOT / "reports" / f"benchmark_folds_{LAM if isinstance(LAM, str) else format(LAM, 'g')}{'' if CLIP else '_noclip'}{'' if MODE == 'synapse' else '_' + MODE}{'' if Q == 0.7 else f'_q{Q:g}'}{TAG}.json"
 results = []
 for seed in SEEDS:
     for fold in range(N_FOLDS):
-        for q in (1.0, 0.7):
+        for q in (1.0, Q):
             results.append(run_condition(neurons, er, ids, q, MODE, seed=seed, lam="cv3" if LAM == "cv3h" else LAM, fold=fold,
                                          n_folds=N_FOLDS, target_graph="train", clip=CLIP, inner_groups=INNER))
             OUT.write_text(json.dumps(results, indent=1, default=float))

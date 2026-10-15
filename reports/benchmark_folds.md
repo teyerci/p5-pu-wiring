@@ -118,10 +118,11 @@ Same seed-0 folds, synapse dropout, λ = 10⁻² (the value of the earlier rando
 
 - Stronger regularisation reverses the spread: α* is now 1.3–2.3 without thinning, so the predictions are too narrow and Brier would fall if they were scaled *up*.
 - Correspondingly, PU at the true c has the lower Brier than naive in 5 of 5 folds (mean difference naive − PU = +4.6·10⁻⁵; sign test p = 0.06 with 5 folds) and also beats the fully labelled model in 5 of 5. Its pooled relative level is 1.002 (naive 0.656). This matches the random-split result at λ = 10⁻² (PU lower in 18 of 20).
+- **Seeds 1–2** (`reports/benchmark_folds_0.01_s1-2.json`; all three seeds summarised in `reports/benchmark_folds_0.01_merged_paired.json`): PU has the lower Brier in 15 of 15 folds (mean difference +4.8·10⁻⁵, SD 2.2·10⁻⁵; sign test p = 6·10⁻⁵) and beats the fully labelled model in 10 of 15; pooled relative level 0.999–1.003 (naive 0.656–0.658). α* without thinning is 1.24–2.57 over the 15 folds, fold offsets 0.71–1.69, mean AUC without thinning 0.915 against 0.934 at λ = 10⁻⁴.
 - The cost is ranking: mean AUC without thinning is 0.912 against 0.931 at λ = 10⁻⁴ (lower in every fold), and the fold offsets spread more widely (0.75–1.53, pooled 1.013).
 - Under synapse dropout, the naive model's shrinkage by true stratum now *falls* with strength (0.67 for true zeros, 0.55 for 1–9 synapses, 0.50–0.51 for the positive strata), the opposite of λ = 10⁻⁴. The stratum pattern depends on λ, so it is not a clean read-out of the SCAR violation by itself.
 
-### 3.6 λ by 3-fold inner CV grouped by homologue group, seed 0 (`reports/benchmark_folds_cv3h.json`)
+### 3.6 λ by 3-fold inner CV grouped by homologue group, seeds 0–2 (`reports/benchmark_folds_cv3h.json`: seed 0)
 
 `lam="cv3"` with `inner_groups="homologue"`: the inner folds hold out whole homologue groups, as the outer folds do (Fable's review of 3.2).
 
@@ -129,6 +130,28 @@ Same seed-0 folds, synapse dropout, λ = 10⁻² (the value of the earlier rando
 - Mean AUC without thinning is 0.920, between λ = 10⁻⁴ (0.931) and 10⁻² (0.912). Pooled offset 1.018 (folds 0.92–1.32), naive relative level 0.659, PU at true c 1.012.
 - α* without thinning is 1.47, 1.02, 0.58, 0.97 and 0.77: close to 1 in two folds. No Brier preference is detected (PU lower in 2 of 5, mean difference −2.4·10⁻⁵, sign test p = 1.0).
 
-With a λ chosen on held-out types, α* lies on both sides of 1 and this comparison detects no Brier preference between naive and PU (5 folds, one seed). That is a preliminary result, not evidence of equivalence or of well-calibrated spread. AUC is lower than at λ = 10⁻⁴. If ranking matters most (H3, the H4 candidate list), λ = 10⁻⁴ ranks best; if probabilities matter (H2), the type-grouped choice is better matched to the task. The proposal's final design should state which one it uses, and why.
+**Seeds 1–2** (`reports/benchmark_folds_cv3h_s1-2.json`; the three seeds together in `reports/benchmark_folds_cv3h_merged_paired.json` and `_merged_summary.csv`):
 
-Taken together (3.1–3.6): changing λ reverses the Brier ordering of naive and PU, in step with whether the base model's predictions on held-out types are too wide (α* < 1) or too narrow (α* > 1). These comparisons (sections 3.4–3.6 on seed 0 only, all at q = 0.7) do not show that λ is the only factor; they show that a Brier difference between naive and PU cannot be read as evidence for or against the PU correction without checking the spread. PU at the true c restores the level in every setting tried (pooled relative level 0.98–1.03).
+- Over the 30 runs it chooses 10⁻³ in 26, 10⁻² in 2 (seed 0, fold 0) and 10⁻⁴ in 2 (seed 1 fold 1 and seed 2 fold 1, both at q = 0.7 only).
+- Mean AUC without thinning 0.925 (λ = 10⁻⁴: 0.934; 10⁻²: 0.915, both over the same 3 seeds). Pooled offsets 1.018–1.021 per seed (folds 0.84–1.48). α* without thinning 0.50–1.47 over the 15 folds.
+- PU has the lower Brier in 4 of 15 folds (mean difference naive − PU = −4.7·10⁻⁵, SD 1.1·10⁻⁴; sign test p = 0.12). Its level is closer to 1 than naive's in 13 of 15.
+- Pooled relative level of PU at the true c: 1.012, 0.995 and 1.064 for seeds 0–2. Seed 2's value comes mostly from fold 1, where inner CV chose λ = 10⁻³ without thinning but 10⁻⁴ at q = 0.7; the relative level divides by a baseline fitted at another λ, and it reaches 1.255 in that fold. With a per-run λ choice, the relative level mixes the PU correction with the change of λ.
+
+With a λ chosen on held-out types, α* lies on both sides of 1 and this comparison detects no clear Brier preference between naive and PU (4 of 15, p = 0.12; it leans towards naive). That is not evidence of equivalence or of well-calibrated spread. AUC is lower than at λ = 10⁻⁴. If ranking matters most (H3, the H4 candidate list), λ = 10⁻⁴ ranks best; if probabilities matter (H2), the type-grouped choice is better matched to the task. The proposal's final design should state which one it uses, and why.
+
+### 3.7 Heavier thinning, q = 0.5, λ = 10⁻⁴, seeds 0–2 (`reports/benchmark_folds_0.0001_q0.5.json`)
+
+Synapse dropout at q = 0.5, the same folds as 3.1 (the no-thinning rows reproduce 3.1 exactly). Realised c over all true connections is 0.409–0.410 in every run; on single held-out folds' evaluation sets (1 − deleted / true positives) it ranges 0.364–0.465.
+
+| Seed | Naive, relative level | PU at true c, relative level | Brier naive / PU | Mean AUC naive / PU | Realised c (train) |
+|---|---|---|---|---|---|
+| 0 | 0.405 | 0.982 | 0.0038 / 0.0040 | 0.918 / 0.922 | 0.409 |
+| 1 | 0.423 | 1.008 | 0.0038 / 0.0040 | 0.921 / 0.927 | 0.410 |
+| 2 | 0.413 | 1.002 | 0.0038 / 0.0040 | 0.931 / 0.934 | 0.410 |
+
+- **Level.** PU at the true c restores the pooled level to 0.98–1.01, and its fold-level ratio is closer to 1 than naive's in 15 of 15 folds.
+- **Brier.** Heavier thinning does not reverse the ordering at this λ. Naive has the lower Brier in 13 of 15 folds (mean difference naive − PU = −1.9·10⁻⁴, SD 2.6·10⁻⁴; sign test p = 0.007), a wider gap than at q = 0.7 (−1.1·10⁻⁴). PU is worse than the fully labelled model in 13 of 15 folds; naive is better than it in 10 of 15 (p = 0.30). The (1 − c)² cost of shrinkage named in 3.3 does not yet dominate at c ≈ 0.41: the naive predictions' α* now spans 0.30–1.96 (too wide in some folds, too narrow in others), PU's 0.20–0.81.
+- **SCAR violation.** The naive model's shrinkage by true stratum rises from 0.41 for true zeros to 0.61 for 50+ synapses, more steeply than at q = 0.7 (0.66 to 0.79): strong connections keep their labels, weak ones lose them.
+- **Ranking.** PU at the true c has a slightly higher AUC than naive in 15 of 15 folds (mean 0.928 against 0.923), while the Spearman correlation of their scores on held-out unlabelled pairs stays at or above 0.996.
+
+Taken together (3.1–3.7): changing λ reverses the Brier ordering of naive and PU, in step with whether the base model's predictions on held-out types are too wide (α* < 1) or too narrow (α* > 1). These comparisons (sections 3.4 on seed 0 only; 3.5–3.6 on 3 seeds; all at q = 0.7, and 3.7 at q = 0.5) do not show that λ is the only factor; they show that a Brier difference between naive and PU cannot be read as evidence for or against the PU correction without checking the spread. PU at the true c restores the level in every setting tried: pooled relative level 0.98–1.03 per seed at a fixed λ, and 0.995–1.064 with λ chosen per run by type-grouped CV, where the baseline and the thinned run can use different λ.

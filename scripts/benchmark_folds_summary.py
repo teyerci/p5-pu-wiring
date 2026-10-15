@@ -8,7 +8,8 @@ naive − PU at the true c at q = 0.7 (> 0 favours PU), with a sign test, and th
 the naive model's shrinkage (thinned / unthinned mean prediction) by true synapse stratum; and how
 often each q = 0.7 model has a lower Brier than the same fold's model fitted without thinning;
 and, where the runs store it, the Brier-optimal scale of each model's predictions.
-Usage: python scripts/benchmark_folds_summary.py reports/benchmark_folds_0.0001.json
+Usage: python scripts/benchmark_folds_summary.py reports/benchmark_folds_0.0001.json [more files to merge]
+"q = 0.7" below stands for the thinned q of the files (one per summary).
 Writes <json stem>_summary.csv and <json stem>_paired.json next to the input.
 """
 import json
@@ -19,8 +20,15 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-path = Path(sys.argv[1])
-runs = json.loads(path.read_text())
+paths = [Path(a) for a in sys.argv[1:]]                  # several files (e.g. seed ranges) are merged
+runs = [r for pth in paths for r in json.loads(pth.read_text())]
+path = paths[0] if len(paths) == 1 else paths[0].with_name(paths[0].stem + "_merged.json")
+if len({(r["seed"], r["fold"], r["q"]) for r in runs}) != len(runs):
+    raise ValueError("a (seed, fold, q) run appears twice")
+QT = {r["q"] for r in runs} - {1.0}
+if len(QT) != 1:
+    raise ValueError("one thinned q per summary")
+QT = QT.pop()
 if len({(r["mode"], r.get("clip", False)) for r in runs}) != 1:
     raise ValueError("one dropout mode and clip setting per file")
 rows = []
@@ -42,16 +50,16 @@ for seed, g in df.groupby("seed"):
            "folds": int(base.fold.nunique()), "offset_pooled": off,
            "offset_fold_min": base.level.min(), "offset_fold_max": base.level.max()}
     for name in ("naive", "pu_true_c"):
-        t = g[(g.q == 0.7) & (g.model == name)]
+        t = g[(g.q == QT) & (g.model == name)]
         rec[f"{name}_level"] = t.sum_p.sum() / t.sum_y.sum()
         rec[f"{name}_relative"] = rec[f"{name}_level"] / off
         rec[f"{name}_brier"] = t.sum_brier.sum() / t.w.sum()
         rec[f"{name}_auc_mean"] = t.auc_y.mean()
-    rec["c_train_mean"] = g[g.q == 0.7].c_train.mean()
+    rec["c_train_mean"] = g[g.q == QT].c_train.mean()
     per_seed.append(rec)
 per_seed = pd.DataFrame(per_seed)
 
-thin = df[df.q == 0.7].pivot_table(index=["seed", "fold"], columns="model", values=["sum_brier", "w", "level", "spearman_h3"])
+thin = df[df.q == QT].pivot_table(index=["seed", "fold"], columns="model", values=["sum_brier", "w", "level", "spearman_h3"])
 d = (thin["sum_brier"]["naive"] / thin["w"]["naive"]) - (thin["sum_brier"]["pu_true_c"] / thin["w"]["pu_true_c"])
 k = int((d > 0).sum())
 paired = {"runs": int(len(d)), "pu_lower_brier": k, "brier_diff_mean": float(d.mean()), "brier_diff_sd": float(d.std(ddof=1)),
@@ -61,7 +69,7 @@ paired = {"runs": int(len(d)), "pu_lower_brier": k, "brier_diff_mean": float(d.m
 
 
 def pooled_reliability(seed, name, bins=10):
-    parts = [b for r in runs if r["seed"] == seed and r["q"] == 0.7 for b in r["models"][name]["reliability"]]
+    parts = [b for r in runs if r["seed"] == seed and r["q"] == QT for b in r["models"][name]["reliability"]]
     t = pd.DataFrame(parts).sort_values("mean_p")
     cum = (t["weight"].cumsum() - t["weight"]) / t["weight"].sum()
     t["bin"] = np.minimum((cum * bins + 1e-12).astype(int), bins - 1)
@@ -76,16 +84,16 @@ by_run = {(r["seed"], r["fold"], r["q"]): r["models"]["naive"]["by_true_stratum"
 shrink = {}
 zero = {"weight": 0.0, "mean_f": 0.0}                     # a stratum empty in a run adds nothing
 for st in dict.fromkeys(st for v in by_run.values() for st in v):      # union, first-seen order
-    num = sum(v.get(st, zero)["weight"] * v.get(st, zero)["mean_f"] for (s, f, q), v in by_run.items() if q == 0.7)
+    num = sum(v.get(st, zero)["weight"] * v.get(st, zero)["mean_f"] for (s, f, q), v in by_run.items() if q == QT)
     den = sum(by_run[(s, f, 1.0)].get(st, zero)["weight"] * by_run[(s, f, 1.0)].get(st, zero)["mean_f"]
-              for (s, f, q) in by_run if q == 0.7)
+              for (s, f, q) in by_run if q == QT)
     shrink[st] = num / den
 paired["naive_shrinkage_by_true_stratum"] = shrink
 
 # Brier at q = 0.7 against the same fold's model fitted without thinning (all labels).
 b1 = {(r["seed"], r["fold"]): r["models"]["naive"]["brier_y"] for r in runs if r["q"] == 1.0}
 for name in ("naive", "pu_true_c"):
-    lower = [r["models"][name]["brier_y"] < b1[(r["seed"], r["fold"])] for r in runs if r["q"] == 0.7]
+    lower = [r["models"][name]["brier_y"] < b1[(r["seed"], r["fold"])] for r in runs if r["q"] == QT]
     paired[f"{name}_lower_brier_than_unthinned"] = int(sum(lower))
     paired[f"{name}_vs_unthinned_sign_test_p"] = float(stats.binomtest(int(sum(lower)), len(lower), 0.5).pvalue)
 paired["brier_unthinned_mean"] = float(np.mean(list(b1.values())))
