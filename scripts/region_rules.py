@@ -7,8 +7,9 @@ MaleCNS (Traced neurons; syn-partners at confidence 0.5; all partners, Traced or
   sites       = post sites (one row per post site, so equal to upstream) + unique T-bars
                 (body_pre, x_pre, y_pre, z_pre); a T-bar's neuropil is the primary_post of its first row,
                 an approximation (its partners can lie in different neuropils)
-Rules: "literal" (any label can win; missing labels ignored) and "repo" (labels containing
-"unspecified" never win, as src/fetch_malecns.py). Ties: alphabetically first, in both.
+Rules: "literal" (any label can win; <unspecified> and missing labels spelled UNASGD; the repo's
+rule since the group's D15 discussion of 2026-10-15) and "named-only" (labels containing
+"unspecified" never win; the repo's earlier rule). Ties: alphabetically first, in both.
 FAFB: FlyWire per-neuron neuropil counts (the repo's source); "literal" lets "None"/"UNASGD" win.
 Also checks whether FlyWire's per-neuron output counts are connections or release sites: each
 neuron's output count against its outgoing synapses to proofread partners (a subset of its connections).
@@ -44,7 +45,7 @@ def top_region(counts: pd.DataFrame, exclude) -> pd.Series:
 
 
 def is_unspec_malecns(s):
-    return s.str.contains(UNSPEC, regex=False)
+    return s.str.contains(UNSPEC, regex=False) | (s == "UNASGD")
 
 
 def kind(region: pd.Series) -> pd.Series:
@@ -53,7 +54,7 @@ def kind(region: pd.Series) -> pd.Series:
     canonical_neuropil accepts, so this matches in_brain from add_provisional_flags."""
     b = base_neuropil(region.fillna("unknown")).astype(str)
     out = np.where(region.isna() | (region == "unknown"), "unknown",
-          np.where(region.fillna("").str.contains(UNSPEC, regex=False), "unspecified:" + region.fillna(""),
+          np.where(is_unspec_malecns(region.fillna("")), "unspecified:" + region.fillna(""),
           np.where(b.isin(MALECNS_NERVE_CORD) | region.isin(MALECNS_NERVE_CORD), "nerve_cord",
           np.where(b.isin(OPTIC), "optic", "central"))))
     return pd.Series(out, index=region.index)
@@ -68,7 +69,10 @@ down, up, tb = [], [], []
 maxc = 0
 for i in range(reader.num_record_batches):
     b = pa.Table.from_batches([reader.get_batch(i)]).select(["body_pre", "body_post", "x_pre", "y_pre", "z_pre", "primary_post"])
-    lab = pc.cast(b["primary_post"], pa.string())
+    # as src/fetch_malecns.py: <unspecified> (no ROI) and missing labels are spelled UNASGD,
+    # which also sets their place in the alphabetical tie order
+    lab = pc.fill_null(pc.cast(b["primary_post"], pa.string()), "UNASGD")
+    lab = pc.replace_substring_regex(lab, r"^<unspecified>$", "UNASGD")
     b = b.set_column(5, "primary_post", lab)
     mp = pc.is_in(b["body_pre"], value_set=keep)
     mq = pc.is_in(b["body_post"], value_set=keep)
@@ -107,8 +111,8 @@ for mname, counts in measures.items():
     r1 = top_region(counts, None).reindex(ids)
     r2 = top_region(counts, is_unspec_malecns).reindex(ids)
     if mname == "connections":
-        same = (r2.fillna("unknown").to_numpy() == neurons["region"].to_numpy()).mean()
-        res["malecns_check_repo_rule_connections_equals_cache_region"] = float(same)
+        same = (r1.fillna("unknown").to_numpy() == neurons["region"].to_numpy()).mean()
+        res["malecns_check_literal_rule_connections_equals_cache_region"] = float(same)
     k1 = kind(r1)
     unspec = k1.str.startswith("unspecified:")
     r2u = kind(r2[unspec])
@@ -117,22 +121,22 @@ for mname, counts in measures.items():
         "neurons": int(len(ids)),
         "literal_top_label_unspecified_by_label": k1[unspec].str.replace("unspecified:", "").value_counts().to_dict(),
         "literal_unknown": int((k1 == "unknown").sum()),
-        "repo_region_of_those_neurons_by_kind": r2u.value_counts().to_dict(),
-        "repo_region_of_those_neurons_top12": named.value_counts().head(12).to_dict(),
-        "repo_unknown_total": int(r2.isna().sum()),
-        # per literal label: where the repo rule puts those neurons, and their top named regions
-        "repo_region_by_literal_label": {
+        "named_only_region_of_those_neurons_by_kind": r2u.value_counts().to_dict(),
+        "named_only_region_of_those_neurons_top12": named.value_counts().head(12).to_dict(),
+        "named_only_unknown_total": int(r2.isna().sum()),
+        # per literal label: where the named-only rule puts those neurons, and their top named regions
+        "named_only_region_by_literal_label": {
             l.replace("unspecified:", ""): {"by_kind": kind(r2[k1 == l]).value_counts().to_dict(),
                                            "top8": r2[k1 == l].dropna().value_counts().head(8).to_dict()}
             for l in k1[unspec].unique()},
     }
-    # share of the repo-rule region among the neuron's labelled synapses, for the neurons the literal rule gives an unspecified label
+    # share of the named-only region among the neuron's labelled synapses, for the neurons the literal rule gives an unspecified label
     c = counts[counts["neuron_id"].isin(r1[unspec].index)].groupby(["neuron_id", "label"])["count"].sum().reset_index()
     tot = c.groupby("neuron_id")["count"].sum()
     win = c.merge(named.rename("label").reset_index(), on=["neuron_id", "label"]).set_index("neuron_id")["count"]
     share = (win / tot.reindex(win.index))
     lab1 = r1[unspec]
-    res[f"malecns_{mname}"]["repo_region_share_median_by_literal_label"] = {
+    res[f"malecns_{mname}"]["named_only_region_share_median_by_literal_label"] = {
         l: float(share.reindex(lab1[lab1 == l].index).median()) for l in lab1.unique()}
 
     # brain subset under three treatments
@@ -143,7 +147,7 @@ for mname, counts in measures.items():
     res[f"malecns_{mname}"]["brain_subset"] = {
         "literal + proposed CSV rows (Optic-/CentralBrain-unspecified in brain)": brain(k1_csv),
         "literal, unspecified labels rejected -> unknown": brain(k1),
-        "repo rule": brain(kind(r2)),
+        "named-only rule (earlier repo rule)": brain(kind(r2)),
     }
     print(mname, json.dumps(res[f"malecns_{mname}"], indent=1, default=str), flush=True)
 del measures, down, up, tbars
@@ -164,9 +168,9 @@ res["fafb"] = {
     "neurons": int(len(fids)),
     "labels_outside_neuropils": sorted(set(both["label"][unas(both["label"])])),
     "literal_top_label_unassigned": int(moved.sum()),
-    "repo_region_of_those_by_kind": pd.Series(np.where(f2[moved].isna(), "unknown", np.where(fk.isin(OPTIC), "optic", "central"))).value_counts().to_dict(),
-    "repo_region_of_those_top12": f2[moved].dropna().value_counts().head(12).to_dict(),
-    "repo_rule_check_equals_cache_region": float((f2.fillna("unknown").to_numpy() == fn["region"].to_numpy()).mean()),
+    "named_only_region_of_those_by_kind": pd.Series(np.where(f2[moved].isna(), "unknown", np.where(fk.isin(OPTIC), "optic", "central"))).value_counts().to_dict(),
+    "named_only_region_of_those_top12": f2[moved].dropna().value_counts().head(12).to_dict(),
+    "literal_rule_check_equals_cache_region": float((f1.replace("None", "UNASGD").fillna("unknown").to_numpy() == fn["region"].to_numpy()).mean()),
 }
 # Are FlyWire's per-neuron output counts connections or release sites? Compare each neuron's
 # total output count with its outgoing synapses to proofread partners (a subset of all its connections).

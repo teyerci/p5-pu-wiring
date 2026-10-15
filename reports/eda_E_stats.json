@@ -7,11 +7,11 @@
   "gap_below_0.10_pct": 24.946865037194474
  },
  "E1_malecns": {
-  "neurons": 43868,
-  "no_synapses": 17,
-  "median_top_share": 0.5965643706264228,
-  "gap_below_0.10": 8677,
-  "gap_below_0.10_pct": 19.779793927236256
+  "neurons": 43870,
+  "no_synapses": 107,
+  "median_top_share": 0.5965442603373639,
+  "gap_below_0.10": 8682,
+  "gap_below_0.10_pct": 19.790289491679964
  },
  "E2": {
   "fafb": {
@@ -26,15 +26,15 @@
    "ambiguous_pct": 4.270368083181342
   },
   "malecns": {
-   "neurons": 142621,
-   "clean central": 39568,
+   "neurons": 142745,
+   "clean central": 39573,
    "ambiguous": 6504,
    "clean optic": 96443,
-   "no synapses": 106,
-   "optic_by_super_class_pct": 62.67239747302291,
-   "optic_by_region_flag_pct": 69.22963658928208,
-   "optic_by_synapse_share_pct": 67.62187896593068,
-   "ambiguous_pct": 4.560338239109248
+   "no synapses": 225,
+   "optic_by_super_class_pct": 62.62075729447616,
+   "optic_by_region_flag_pct": 69.19191565378823,
+   "optic_by_synapse_share_pct": 67.56313706259414,
+   "ambiguous_pct": 4.556376755753266
   }
  },
  "E3": {
@@ -44,20 +44,20 @@
    "synapses": 13378205
   },
   "malecns": {
-   "regions": 35,
-   "within_region_share": 0.6039540469716121,
-   "synapses": 28280443
+   "regions": 36,
+   "within_region_share": 0.6018415559228583,
+   "synapses": 28286081
   }
  },
  "E4_malecns": {
-  "neurons": 43882,
-  "median_ratio": 0.9612101649233831,
-  "pooled_ratio": 0.9526921734083773,
+  "neurons": 43957,
+  "median_ratio": 0.9611650485436893,
+  "pooled_ratio": 0.9526927478218831,
   "over_1": 0,
-  "below_0.5": 377,
-  "median_ratio_brain_partners": 0.9558801534373845,
-  "pooled_ratio_brain_partners": 0.9116365961688152,
-  "median_ratio_ascending_brain_partners": 0.2689401241847015
+  "below_0.5": 424,
+  "median_ratio_brain_partners": 0.9558498896247241,
+  "pooled_ratio_brain_partners": 0.9117623633443787,
+  "median_ratio_ascending_brain_partners": 0.26903553299492383
  },
  "E4supp_fafb": {
   "neurons": 45109,
@@ -79,28 +79,28 @@
  },
  "E5supp_malecns": {
   "central": {
-   "type_pairs": 1933642,
-   "share_1syn": 0.3243717895920865,
-   "share_10plus": 0.9471728408309587
+   "type_pairs": 1934411,
+   "share_1syn": 0.32426147590934384,
+   "share_10plus": 0.9469482635301597
   },
   "optic": {
-   "type_pairs": 88010,
-   "share_1syn": 0.44690692496328893,
-   "share_10plus": 0.9572361017330633
+   "type_pairs": 87901,
+   "share_1syn": 0.44782097925502284,
+   "share_10plus": 0.9577228212780635
   }
  },
  "E6": {
   "fafb vs malecns": {
-   "match_groups": 7294,
+   "match_groups": 7296,
    "regions": 40,
-   "neurons_a": 19102,
-   "neurons_b": 19116,
-   "type_pairs": 1504387,
-   "share_1syn": 0.3117959009101313,
-   "share_10plus": 0.9059288140137636,
-   "share_10_19": 0.8713521282663179,
-   "a_to_b_10_19": 0.9038012128383375,
-   "b_to_a_10_19": 0.8389030436942985
+   "neurons_a": 19105,
+   "neurons_b": 19025,
+   "type_pairs": 1501129,
+   "share_1syn": 0.31113298212537166,
+   "share_10plus": 0.9047636379926308,
+   "share_10_19": 0.8695497422971855,
+   "a_to_b_10_19": 0.899997043082291,
+   "b_to_a_10_19": 0.83910244151208
   },
   "fafb vs hemibrain": {
    "match_groups": 3909,
@@ -115,16 +115,16 @@
    "b_to_a_10_19": 0.8633285450441207
   },
   "fafb vs malecns, hemibrain-matched types": {
-   "match_groups": 3980,
+   "match_groups": 3981,
    "regions": 39,
-   "neurons_a": 11170,
-   "neurons_b": 11397,
-   "type_pairs": 734751,
-   "share_1syn": 0.3215740727875699,
-   "share_10plus": 0.9310327567988432,
-   "share_10_19": 0.8985368419642694,
-   "a_to_b_10_19": 0.9370465088616629,
-   "b_to_a_10_19": 0.8600271750668761
+   "neurons_a": 11171,
+   "neurons_b": 11363,
+   "type_pairs": 733596,
+   "share_1syn": 0.32096530480778906,
+   "share_10plus": 0.9299611111730163,
+   "share_10_19": 0.8969672258134747,
+   "a_to_b_10_19": 0.9338960884555939,
+   "b_to_a_10_19": 0.8600383631713555
   },
   "fafb left vs right": {
    "share_1syn": 0.3151210402960113,
@@ -145,7 +145,7 @@
   },
   "malecns": {
    "PB": 87,
-   "FB": 1887,
+   "FB": 1886,
    "EB": 419,
    "NO": 265
   }
@@ -164,10 +164,10 @@
   "columnar_connected_type_pairs": 393
  },
  "E7_malecns": {
-  "neurons_region_cx": 2658,
+  "neurons_region_cx": 2657,
   "neurons_cell_class_cx": 2950,
   "overlap": 2628,
-  "cell_types": 283,
+  "cell_types": 282,
   "untyped": 1,
   "types_8_to_16_on_both_sides": 37,
   "types_one_on_both_sides": 81,

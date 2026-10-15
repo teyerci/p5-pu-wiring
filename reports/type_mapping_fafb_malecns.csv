@@ -60,7 +60,7 @@ AN_AVLP_35,AN_AVLP_35,2,AN08B018,2,matched
 AN_AVLP_36,AN_AVLP_36,2,AN08B018,2,matched
 AN_AVLP_37,AN_AVLP_37,2,ANXXX007,5,matched
 AN_AVLP_38,AN_AVLP_38,2,,0,fafb only
-AN_AVLP_39,AN_AVLP_39,2,AN12B006,2,matched
+AN_AVLP_39,AN_AVLP_39,2,,0,fafb only
 AN_AVLP_4,AN_AVLP_4,2,ANXXX027,2,matched
 AN_AVLP_40,AN_AVLP_40,2,AN10B020,2,matched
 AN_AVLP_41,AN_AVLP_41,4,AN09B015,2,matched
@@ -171,7 +171,7 @@ AN_GNG_136,AN_GNG_136,2,AN09B018,1,matched
 AN_GNG_137,AN_GNG_137,2,,0,fafb only
 AN_GNG_138,AN_GNG_138,2,,0,fafb only
 AN_GNG_139,AN_GNG_139,2,,0,fafb only
-AN_GNG_14,AN_GNG_14,2,,0,fafb only
+AN_GNG_14,AN_GNG_14,2,ANXXX214,2,matched
 AN_GNG_141,AN_GNG_141,2,,0,fafb only
 AN_GNG_142,AN_GNG_142,6,AN07B110,6,matched
 AN_GNG_143,AN_GNG_143,2,,0,fafb only
@@ -241,7 +241,7 @@ AN_GNG_20,AN_GNG_20,2,AN26X004,2,matched
 AN_GNG_200,AN_GNG_200,6,,0,fafb only
 AN_GNG_201,AN_GNG_201,3,,0,fafb only
 AN_GNG_202,AN_GNG_202,2,,0,fafb only
-AN_GNG_203,AN_GNG_203,3,,0,fafb only
+AN_GNG_203,AN_GNG_203,3,AN19B051,1,matched
 AN_GNG_204,AN_GNG_204,8,,0,fafb only
 AN_GNG_21,AN_GNG_21,2,ANXXX462b,2,matched
 AN_GNG_22,AN_GNG_22,4,ANXXX049,2,matched
@@ -1098,7 +1098,7 @@ Am1,Am1,2,Am1,2,matched
 AstA1,AstA1,2,AstA1,2,matched
 "BM_Ant,BM_Fr,BM_FrOr,BM_InOc,BM_Oc,BM_Or,BM_Vib","BM_Ant,BM_Fr,BM_FrOr,BM_InOc,BM_Oc,BM_Or,BM_Vib",118,"BM,BM_Vib",91,matched
 BM_Hau,BM_Hau,10,BM_Hau,7,matched
-BM_InOm,BM_InOm,1113,BM_InOm,703,matched
+BM_InOm,BM_InOm,1113,BM_InOm,706,matched
 BM_MaPa,BM_MaPa,24,BM_MaPa,15,matched
 BM_Taste,BM_Taste,72,BM_Taste,40,matched
 BM_Vt_PoOc,BM_Vt_PoOc,10,BM_Vt_PoOc,8,matched
@@ -5098,7 +5098,7 @@ DNg11,DNg11,6,DNg11,3,matched
 DNg110,DNg110,6,,0,fafb only
 DNg111,DNg111,2,DNg111,2,matched
 DNg12_a,DNg12_a,8,DNg12_a,8,matched
-DNg12_b,DNg12_b,18,"DNg12_b,DNg12_f,DNg12_g",16,matched
+DNg12_b,DNg12_b,18,"DNg12_b,DNg12_f,DNg12_g",15,matched
 DNg12_c,DNg12_c,6,DNg12_c,5,matched
 DNg12_d,DNg12_d,2,"DNg12_d,DNg12_h",4,matched
 DNg12_e,DNg12_e,8,DNg12_e,1,matched
@@ -5113,7 +5113,7 @@ DNg19,DNg19,2,,0,fafb only
 DNg20,DNg20,2,DNg20,2,matched
 DNg21,DNg21,2,DNg21,2,matched
 DNg22,DNg22,2,DNg22,2,matched
-DNg23,DNg23,2,DNg23,2,matched
+DNg23,DNg23,2,DNg23,1,matched
 DNg24,DNg24,2,DNg24,2,matched
 DNg26,DNg26,4,,0,fafb only
 DNg27,DNg27,2,,0,fafb only
@@ -5328,7 +5328,7 @@ DNge133,DNge133,2,DNge133,2,matched
 DNge134,DNge134,2,DNge134,2,matched
 DNge135,DNge135,2,DNge135,2,matched
 DNge136,DNge136,4,,0,fafb only
-DNge137,DNge137,2,DNge137,2,matched
+DNge137,DNge137,2,DNge137,3,matched
 DNge138,DNge138,2,DNge138,2,matched
 DNge139,DNge139,2,,0,fafb only
 DNge140,DNge140,2,DNge140,2,matched
@@ -5396,7 +5396,7 @@ DNp40,DNp40,2,,0,fafb only
 DNp41,DNp41,4,,0,fafb only
 DNp42,DNp42,2,,0,fafb only
 DNp43,DNp43,2,DNp43,1,matched
-DNp44,DNp44,2,DNp44,2,matched
+DNp44,DNp44,2,DNp44,1,matched
 DNp45,DNp45,2,,0,fafb only
 DNp46,DNp46,2,DNp46,2,matched
 DNp47,DNp47,2,,0,fafb only
@@ -5418,7 +5418,7 @@ DNp64,DNp64,2,,0,fafb only
 DNp65,DNp65,2,DNp65,1,matched
 DNp66,DNp66,2,,0,fafb only
 DNp67,DNp67,2,,0,fafb only
-DNp68,DNp68,2,,0,fafb only
+DNp68,DNp68,2,DNp68,1,matched
 DNp69,DNp69,2,,0,fafb only
 DNp70,DNp70,2,,0,fafb only
 DNp71,DNp71,2,DNp71,2,matched
@@ -5515,7 +5515,7 @@ DmDRA2,DmDRA2,24,Dm-DRA2,33,matched
 EL,EL,17,EL,18,matched
 ENS1,ENS1,10,ENS1,6,matched
 ENS2,ENS2,10,ENS2,4,matched
-ENS3,ENS3,29,ENS3,4,matched
+ENS3,ENS3,29,ENS3,5,matched
 ENS4,ENS4,12,ENS4,5,matched
 ENS5,ENS5,18,ENS5,6,matched
 EPG,EPG,47,EPG,46,matched
@@ -5776,17 +5776,17 @@ IB117,IB117,2,IB117,2,matched
 IB118,IB118,2,IB118,2,matched
 IPC,IPC,18,IPC,16,matched
 ISN,ISN,4,ISN,4,matched
-ITP,ITP,8,ITP,3,matched
+ITP,ITP,8,ITP,5,matched
 IbSpsP,IbSpsP,30,IbSpsP,31,matched
 JO,JO,1,,0,fafb only
-JO-A,,0,JO-A-unclear,1,malecns only
+JO-A,,0,JO-A-unclear,6,malecns only
 JO-A1,JO-A1,21,JO-A1,7,matched
 JO-A2,JO-A2,33,JO-A2,13,matched
 JO-A3,JO-A3,6,JO-A3,2,matched
 JO-A4,JO-A4,2,JO-A4,3,matched
 JO-A5,JO-A5,37,,0,fafb only
-JO-B,,0,JO-B-unclear,4,malecns only
-JO-B1_a,JO-B1_a,106,"(untyped),JO-B1_a",17,matched
+JO-B,,0,JO-B-unclear,7,malecns only
+JO-B1_a,JO-B1_a,106,"(untyped),JO-B1_a",18,matched
 JO-B1_b,JO-B1_b,27,JO-B1_b,12,matched
 JO-B1_c,JO-B1_c,22,JO-B1_c,10,matched
 JO-B2,JO-B2,36,JO-B2,9,matched
@@ -6023,7 +6023,7 @@ LB2a-b,,0,"LB2a,LB2b",7,malecns only
 LB2b,LB2b,4,,0,fafb only
 LB2c,LB2c,7,LB2c,6,matched
 LB2d,,0,LB2d,4,malecns only
-LB3,LB3,3,"(untyped),LB3a,LB3b,LB3c,LB3d,LB4b",86,matched
+LB3,LB3,3,"(untyped),LB3,LB3a,LB3b,LB3c,LB3d,LB4b",87,matched
 LB3a,LB3a,30,,0,fafb only
 LB3b,LB3b,25,,0,fafb only
 LB3c,LB3c,32,,0,fafb only

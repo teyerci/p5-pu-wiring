@@ -27,6 +27,19 @@ MALECNS_NERVE_CORD = frozenset({
     "ADMN", "AbN1", "AbN2", "AbN3", "AbN4", "AbNT", "CvN", "DMetaN", "DProN",
     "MesoAN", "MesoLN", "MetaLN", "PDMN", "PrN", "ProAN", "ProCN", "ProLN", "VProN",
 })
+# PROVISIONAL (D15, agreed in the group chat on 2026-10-15, to confirm on Thursday):
+# MaleCNS labels for synapses outside a named neuropil can be a neuron's region, as
+# two neuropil-table rows with region_group unknown that keep their neurons in the
+# brain. eda_shared's table does not have them yet, so flags() passes them alongside
+# it; rows the shared table gains later take precedence.
+PROPOSED_NEUROPIL_ROWS = pd.DataFrame({
+    "neuropil": ["Optic-unspecified", "CentralBrain-unspecified"],
+    "full_name": ["optic lobe, outside named neuropils", "central brain, outside named neuropils"],
+    "is_optic": [True, False],
+    "region_group": ["unknown", "unknown"],
+    "status": ["proposed", "proposed"],
+    "basis": ["MaleCNS label; group proposal for D15", "MaleCNS label; group proposal for D15"],
+}).astype({"neuropil": "string", "region_group": "string"}).set_index("neuropil")
 WEIGHT_BINS = [(1, 1, "1"), (2, 2, "2"), (3, 4, "3–4"), (5, 9, "5–9"),
                (10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
 
@@ -35,9 +48,16 @@ def base_neuropil(names: pd.Series) -> pd.Series:
     return names.astype("string").str.replace(r"(_[LR]|\([LR]\))$", "", regex=True)
 
 
+def neuropil_table() -> pd.DataFrame:
+    """eda_shared's neuropil table plus the proposed rows it does not have yet."""
+    table = load_neuropil_table()
+    extra = PROPOSED_NEUROPIL_ROWS[~PROPOSED_NEUROPIL_ROWS.index.isin(table.index)]
+    return pd.concat([table, extra])
+
+
 def flags(neurons: pd.DataFrame) -> pd.DataFrame:
     """neurons with is_optic, region_group, neuropil (base name) and in_brain from eda_shared."""
-    return add_provisional_flags(neurons, nerve_cord=MALECNS_NERVE_CORD)
+    return add_provisional_flags(neurons, table=neuropil_table(), nerve_cord=MALECNS_NERVE_CORD)
 
 
 def brain_part(neurons, edges, edgeroi=None):

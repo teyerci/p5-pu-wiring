@@ -23,6 +23,16 @@ def test_flags_accept_malecns_nerve_cord_names():
     assert fl.loc[2, "is_optic"] and not fl.loc[1, "is_optic"]
 
 
+def test_flags_keep_unspecified_regions_in_the_brain_with_group_unknown():
+    neurons = pd.DataFrame({"neuron_id": [1, 2, 3, 4],
+                            "region": ["Optic-unspecified(L)", "CentralBrain-unspecified", "UNASGD", "VNC-unspecified"]})
+    fl = flags(neurons).set_index("neuron_id")
+    assert list(fl["in_brain"]) == [True, True, False, False]
+    assert list(fl["is_optic"]) == [True, False, False, False]
+    assert list(fl["region_group"]) == ["unknown"] * 4
+    assert list(fl["neuropil"]) == ["Optic-unspecified", "CentralBrain-unspecified", "unknown", "nerve_cord"]
+
+
 def test_brain_part_keeps_brain_neurons_edges_and_neuropils():
     n, e, er = brain_part(*toy())
     assert list(n["neuron_id"]) == [1, 2]

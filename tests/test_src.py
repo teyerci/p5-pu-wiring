@@ -113,21 +113,38 @@ def test_recode_none_mapping_means_unknown():
                        {"vnc_intrinsic": None, "cb_intrinsic": "central"}, "super_class")) == ["unknown", "central"]
 
 
-def test_malecns_region_ignores_unspecified_and_breaks_ties_alphabetically(monkeypatch):
+def test_malecns_region_lets_unspecified_win_and_breaks_ties_alphabetically(monkeypatch):
     import numpy as np
     import pyarrow as pa
     from src import fetch_malecns
 
-    # body 1: 3 synapses in CentralBrain-unspecified, 2 in FB (as pre and post), 1 unlabelled -> FB
-    # body 2: one synapse each in PB and EB (a tie) -> EB; body 3: only unspecified -> unknown
-    rows = [(1, 9, "CentralBrain-unspecified")] * 3 + [(1, 9, "FB"), (9, 1, "FB"), (1, 9, None),
-            (2, 9, "PB"), (9, 2, "EB"), (3, 9, "<unspecified>")]
+    # body 1: 3 synapses in CentralBrain-unspecified, 2 in FB (as pre and post) -> CentralBrain-unspecified
+    # body 2: one synapse each in PB and EB (a tie) -> EB
+    # body 3: <unspecified> twice and one unlabelled, against 1 in FB -> UNASGD (no ROI is FlyWire's UNASGD)
+    rows = [(1, 9, "CentralBrain-unspecified")] * 3 + [(1, 9, "FB"), (9, 1, "FB"),
+            (2, 9, "PB"), (9, 2, "EB"), (3, 9, "<unspecified>"), (9, 3, "<unspecified>"), (3, 9, None),
+            (3, 9, "FB")]
     pre, post, roi = zip(*rows)
     table = pa.table({"body_pre": pa.array(pre, pa.int64()), "body_post": pa.array(post, pa.int64()),
                       "primary_post": pa.array(roi, pa.string()).dictionary_encode()})
     monkeypatch.setattr(fetch_malecns, "_partners", lambda columns: table.select(columns))
     region = fetch_malecns._region_from_all_synapses(np.array([1, 2, 3]))
-    assert region.to_dict() == {1: "FB", 2: "EB"}
+    assert region.to_dict() == {1: "CentralBrain-unspecified", 2: "EB", 3: "UNASGD"}
+
+
+def test_fafb_region_spells_none_as_unasgd_and_lets_it_win(tmp_path, monkeypatch):
+    import numpy as np
+    from src import fetch_fafb
+
+    # neuron 1: 3 None, 2 FB -> UNASGD; neuron 2: 2 None, 2 GNG, a tie -> GNG (alphabetical); neuron 3 is not asked for
+    pre = pd.DataFrame({"pre_pt_root_id": [1, 1, 2, 3], "neuropil": ["None", "FB", "GNG", "None"], "count": [2, 2, 2, 9]})
+    post = pd.DataFrame({"post_pt_root_id": [1, 2], "neuropil": ["None", "None"], "count": [1, 1]})
+    pre.to_feather(tmp_path / "pre.feather")
+    post.to_feather(tmp_path / "post.feather")
+    monkeypatch.setattr(fetch_fafb, "raw_file", lambda name: tmp_path / {"neuropil_pre": "pre.feather",
+                                                                        "neuropil_post": "post.feather"}[name])
+    region = fetch_fafb._region_from_all_synapses(np.array([1, 2]))
+    assert region.to_dict() == {1: "UNASGD", 2: "GNG"}
 
 
 def _malecns_raw(tmp_path, monkeypatch):

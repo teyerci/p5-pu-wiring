@@ -66,7 +66,7 @@ data/cache/hemibrain_edgeroi_v1.2_traced-uncropped_min1.parquet
 | cell_type, cell_class, cell_sub_class | `cell_type`, `cell_class`, `cell_sub_class` | verbatim |
 | super_class | `super_class` | `sensory_ascending` → `sensory` (provisional, see open issues) |
 | side | `side` | `na` → `unknown` |
-| region | per-neuron neuropil counts, pre + post | the neuropil with most synapses, from all synapses; `None` (outside any neuropil) is ignored; ties → alphabetically first (provisional, until the week 3 tie rule) |
+| region | per-neuron neuropil counts, pre + post | the neuropil with most synapses, from all synapses; `None` (outside any neuropil) is spelled `UNASGD` and can win (D15, group discussion of 2026-10-15; region_group unknown); ties → alphabetically first (provisional, until the week 3 tie rule) |
 | nt_type / nt_confidence | `top_nt` / `top_nt_conf` | missing → `unknown`, with confidence left missing |
 | n_pre, n_post | not provided | left missing, as the conventions say |
 | hemibrain_type | `hemibrain_type` | |
@@ -87,7 +87,7 @@ Files: `body-annotations` (annotations), `body-neurotransmitters`, `body-stats` 
 | cell_type, cell_class, cell_sub_class | `type`, `class`, `subclass` | verbatim |
 | super_class | `superclass` | **provisional** mapping onto the FAFB levels, see open issues |
 | side | `somaSide`, else `rootSide` | `L/R/M` → `left/right/center` |
-| region | `syn-partners`, pre + post | the neuropil with most synaptic connections, from all partners (the FAFB rule); labels containing `unspecified` and missing labels are ignored; ties → alphabetically first. Names keep neuPrint's spelling (`ME(R)`) |
+| region | `syn-partners`, pre + post | the neuropil with most synaptic connections, from all partners (the FAFB rule); labels outside named neuropils (`CentralBrain-unspecified`, `Optic-unspecified(L)`, ...) can win (D15, group discussion of 2026-10-15), `<unspecified>` and missing labels are spelled `UNASGD`; ties → alphabetically first. Names keep neuPrint's spelling (`ME(R)`) |
 | nt_type / nt_confidence | `predicted_nt` / `predicted_nt_confidence` | `unclear` or no prediction → `unknown`, confidence left missing |
 | n_pre, n_post | body-stats `pre`, `post` | missing for the 333 neurons with no synapse at confidence ≥ 0.5. `pre` counts presynaptic sites (T-bars), each with several partners, so it is not an output-connection total (median outgoing `syn_count` / `n_pre` ≈ 3); `post` counts postsynaptic sites and is comparable to input `syn_count` |
 | flywire_type, manc_type, hemibrain_type | `flywireType`, `mancType`, `hemibrainType` | |
@@ -111,7 +111,7 @@ Files: `body-annotations` (annotations), `body-neurotransmitters`, `body-stats` 
 | Edges ≥ 5 synapses | 2,700,513 | 2,700,513 ✓ |
 | Edges ≥ 1 / ≥ 10 | 15,091,983 / 1,066,822 | |
 | Self-connections | 0 | 0 ✓ |
-| Neurons with region `unknown` | 282 | |
+| Neurons with region `unknown` / `UNASGD` | 281 / 6 | |
 | Neurons whose top two neuropils tie | 232 | |
 
 The FAFB tables are built from bulk files downloaded once (about 1.1 GB, a few minutes). Building the cold cache takes about 30 s, and a warm run of `build_fafb_cache.py` takes about 20 s, mostly validation. Deleting one cache file rebuilds only that file.
@@ -132,8 +132,9 @@ The FAFB tables are built from bulk files downloaded once (about 1.1 GB, a few m
 | `cell_class` missing | 140,598 (85%) | 85% ✓ |
 | `hemilineage` missing | 127,377 (77%) | 79% in the conventions — to check |
 | `nt_type` unknown | 14,867 | |
-| Neurons with region `unknown` | 464 (333 without synapses, 131 only outside named neuropils) | |
-| Neurons whose top two neuropils tie | 72 | |
+| Neurons with region `unknown` / `UNASGD` | 333 (no synapses) / 6 | |
+| Neurons with a region outside named neuropils (`unspecified` labels) | 980 (750 brain, 230 `VNC-unspecified`) | |
+| Neurons whose top two neuropils tie | 90 | |
 | Synapses between Traced neurons outside named neuropils (`unspecified` labels) | 2.4% | |
 
 The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold build of all three tables takes about 80 s with a peak of 17 GB of memory, mostly from reading the synapse-partner columns; a warm run takes a few seconds plus validation.
@@ -143,11 +144,11 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 1. **`sensory_ascending`** (612 FAFB neurons) is a FAFB super class that `config.SUPER_CLASS_VALUES` does not list. It is mapped to `sensory` for now. It needs a group decision: add the level to the vocabulary, or keep the mapping.
 2. **Missing ids.** 14 edge ids have no annotation row, not the 7 the conventions expect. There are 139,255 proofread ids against 139,248 annotation rows, and the two lists differ in both directions.
 3. **FAFB `n_post` could be filled.** Zenodo's `per_neuron_neuropil_count_post_783.feather` gives each neuron's input synapses across all partners. That would enable the plausibility check and item E4 on FAFB too.
-4. **Region `None`.** FlyWire labels synapses outside every neuropil as `None`, and `eda_shared` rejects that value. Here it is excluded before choosing a neuron's region.
+4. **Region `None`.** FlyWire labels synapses outside every neuropil as `None`, and `eda_shared` rejects that value. Here it is spelled `UNASGD`, which `eda_shared` maps to unknown; under the D15 rule of item 8 it can be a neuron's region (6 neurons).
 5. **MaleCNS `super_class` (provisional).** `config.SUPER_CLASS_VALUES` has no MaleCNS-only levels yet, so every MaleCNS superclass is mapped onto the FAFB levels in `src/fetch_malecns.py` (`SUPER_CLASS_MAP`): `ol_intrinsic` → optic, `cb_intrinsic` → central, every sensory variant (including `sensory_ascending` and the `_tbc` ones) → sensory, `ascending_neuron` / `descending_neuron` → ascending / descending, motor and efferent → motor (the 110 efferent neurons — `cb_efferent` 4, `vnc_efferent` 94, `efferent_ascending` 8, `efferent_descending` 4 — are non-motor efferents in the MaleCNS vocabulary, so this merge in particular needs a decision), endocrine → endocrine, `visual_projection(_tbc)` → visual_projection, `visual_centrifugal` → visual_centrifugal. `vnc_intrinsic` (13,151), `ENS` (47), `vnc_tbc` (1) and the 516 Traced neurons with no superclass become `unknown`, 13,715 in all. The `cell_class` and `cell_type` columns keep the detail.
-6. **MaleCNS region names in `eda_shared`.** Every brain neuropil name is accepted. `add_provisional_flags` refuses 34 nerve-cord names, the regions of 22,037 neurons: `ANm`, `IntTct`, `LTct`, `LegNp(T1–T3)(L/R)`, `WTct(UTct-T2)`, `HTct(UTct-T3)`, `NTct(UTct-T1)`, `Ov`, `mVAC(T1–T3)`, `DMetaN`, `AbN2`, `AbN3`, `ProLN`, `MesoLN`, `MetaLN` (with sides) and `CRN`. They belong in the function's `nerve_cord` argument, not in `ALIASES`; the group should agree on one list so the five repositories pass the same set. The edge-neuropil table also carries the `unspecified` labels (`CentralBrain-unspecified`, `Optic-unspecified(L/R)`, `VNC-unspecified`, `CV-unspecified`, `<unspecified>`), which `canonical_neuropil` refuses as well; they could join `NO_NEUROPIL`. The edge-neuropil table has 143 labels against 114 neuron regions: besides these, it carries nerves that no neuron has as its region (`ADMN`, `AbN1`, `AbN4`, `AbNT`, `CvN`, `DProN`, `MesoAN`, `PDMN`, `PrN`, `ProAN`, `ProCN`, `VProN`, with sides, and `AbN3(R)`, `MesoLN(L)`), so the agreed `nerve_cord` list should cover them too.
+6. **MaleCNS region names in `eda_shared`.** Every brain neuropil name is accepted. `add_provisional_flags` refuses 34 nerve-cord names, the regions of 21,808 neurons (22,037 before the D15 rule of item 8): `ANm`, `IntTct`, `LTct`, `LegNp(T1–T3)(L/R)`, `WTct(UTct-T2)`, `HTct(UTct-T3)`, `NTct(UTct-T1)`, `Ov`, `mVAC(T1–T3)`, `DMetaN`, `AbN2`, `AbN3`, `ProLN`, `MesoLN`, `MetaLN` (with sides) and `CRN`. They belong in the function's `nerve_cord` argument, not in `ALIASES`; the group should agree on one list so the five repositories pass the same set. The edge-neuropil table also carries the `unspecified` labels (`CentralBrain-unspecified`, `Optic-unspecified(L/R)`, `VNC-unspecified`, `CV-unspecified`, `<unspecified>`), which `canonical_neuropil` refuses as well; item 8 gives the rule now used for them. The edge-neuropil table has 143 labels against 118 neuron regions: besides these, it carries nerves that no neuron has as its region (`ADMN`, `AbN1`, `AbN4`, `AbNT`, `CvN`, `DProN`, `MesoAN`, `PDMN`, `PrN`, `ProAN`, `ProCN`, `VProN`, with sides, and `AbN3(R)`, `MesoLN(L)`), so the agreed `nerve_cord` list should cover them too.
 7. **MaleCNS region is computed, not read.** neuPrint's per-neuron `roiInfo` is not in the bulk files, so the region is counted from the synapse-partner table with the FAFB rule (per synaptic connection on both sides, i.e. upstream + downstream, all partners). This is a deviation from "neuPrint roiInfo" if another project reads that field; the two can differ where a T-bar has several partners.
-8. **Region counting measure and labels outside named neuropils** (`scripts/region_rules.py`, `reports/region_rules.md`). FlyWire's per-neuron output counts are connections (each at least the neuron's synapses to proofread partners), so FAFB's region counts connections; the matching MaleCNS measure is upstream + downstream, not pre + post. Under a literal rule, 745 MaleCNS neurons have a brain `unspecified` label as their region (631 counting sites), against 6 FAFB neurons with `None`. The repo rule gives 613 of the 745 a named region and loses 118 net from the brain subset; the group's proposed CSV rows keep all 745 with region_group unknown.
+8. **Region counting measure and labels outside named neuropils** (`scripts/region_rules.py`, `reports/region_rules.md`). FlyWire's per-neuron output counts are connections (each at least the neuron's synapses to proofread partners), so FAFB's region counts connections; the matching MaleCNS measure is upstream + downstream, not pre + post. The group agreed on upstream + downstream on 2026-10-15 and proposed that a label outside the named neuropils can be a neuron's region. The repo follows that proposal (to confirm on Thursday): 750 MaleCNS neurons have `Optic-unspecified(L/R)` or `CentralBrain-unspecified` as their region, 6 FAFB neurons `UNASGD`. The two MaleCNS labels need rows in `eda_shared/neuropils_provisional.csv` (`Optic-unspecified`: is_optic True; `CentralBrain-unspecified`: is_optic False; both region_group unknown, so in_brain True). Until the shared table has them, `src/eda_e.py` passes them alongside it (`PROPOSED_NEUROPIL_ROWS`). MaleCNS brain subset: 142,745 neurons.
 
 ## Step 15 (Project 5): pair sampler and discrepancy count
 
@@ -157,7 +158,7 @@ At the end of `notebooks/00_integration.ipynb`; summary in `reports/step15_discr
 - **Discrepancy count** (`src/discrepancy.py`): central-complex type pairs recorded at τ in one copy, and their status in another: recorded, below τ, or absent. Three comparisons: fafb left vs right, fafb vs hemibrain, and fafb vs malecns (reported only, as it includes sex differences). Between animals the other copy's threshold is scaled by the median type-pair total ratio (hemibrain/fafb 2.0, malecns/fafb 1.75), a proxy for how many more synapses it records per connection.
 - **Result at τ = 10:** only 1.0–4.3% of recorded type pairs have no synapse at all in the other copy. 21–37% are present but below τ. The count is a lower bound on missed positives only if the copies share their true wiring; biological differences also count as discrepancies.
 
-Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the integration notebook): fafb `cell_type` ↔ malecns `flywire_type` only, compound values merged; 95.0% of fafb and 95.9% of malecns brain neurons are in a matched group. Summary in `reports/type_mapping_coverage.md`.
+Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the integration notebook): fafb `cell_type` ↔ malecns `flywire_type` only, compound values merged; 95.0% of fafb and 95.8% of malecns brain neurons are in a matched group. Summary in `reports/type_mapping_coverage.md`.
 
 Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 
@@ -239,3 +240,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-15: Brier-optimal scale per model in benchmark runs; inner λ search grouped by homologue group (`inner_groups`); folds at λ = 10⁻² and with type-grouped inner CV: changing λ reverses the Brier ordering of naive and PU, in step with the spread of the predictions.
 - 2026-10-15: fold benchmark: seed ranges and q option in benchmark_folds.py, merged summaries; λ = 10⁻² and type-grouped inner CV over 3 seeds; q = 0.5.
 - 2026-10-15: region rule evidence for D15: counting measure (FAFB counts connections) and labels outside named neuropils, both datasets.
+- 2026-10-15: region rule switched to the group's D15 proposal: labels outside named neuropils can win (MaleCNS `unspecified` labels, FAFB `None` as `UNASGD`); the two proposed neuropil-table rows passed from `src/eda_e.py`. No CX-class neuron (the Project 5 roster) changes region; one neuron whose region was FB now has CentralBrain-unspecified (E7 by region: 2,658 → 2,657).

@@ -36,7 +36,6 @@ RELEASE = config.MALECNS_DATASET.split(":")[1]                      # v1.0
 SOURCE = config.MALECNS_STATUS.lower()                               # traced
 CONF = config.MALECNS_SYN_CONFIDENCE                                 # 0.5
 UNASSIGNED = "UNASGD"      # FlyWire's spelling for "no neuropil"; canonical_neuropil maps it to unknown
-UNSPECIFIED = "unspecified"  # in every MaleCNS label for synapses outside a named neuropil
 
 # Source value -> agreed vocabulary. An unmapped value raises (recode).
 SIDE_MAP = {"L": "left", "R": "right", "M": "center", "unknown": "unknown"}
@@ -93,18 +92,19 @@ def _region_from_all_synapses(ids: np.ndarray) -> pd.Series:
     Counted from the synapse-partner table over all partners, Traced or not
     ("from all synapses"), one count per synaptic connection on each side, as
     FlyWire's per-neuron neuropil counts do for FAFB. The neuropil of a
-    connection is the table's primary_post. Synapses outside every neuropil
-    (labelled <unspecified>, CentralBrain-unspecified, Optic-unspecified(L), ...)
-    never win. Ties: the alphabetically first neuropil, until week 3 decides.
+    connection is the table's primary_post. Labels outside the named neuropils
+    (CentralBrain-unspecified, Optic-unspecified(L), ...) can win like any other
+    (the group's D15 rule, 2026-10-15); <unspecified> (no ROI at all) and missing
+    labels are spelled UNASGD, as FlyWire does. Ties: the alphabetically first
+    neuropil, until week 3 decides.
     """
     t = _partners(["body_pre", "body_post", "primary_post"])
-    t = t.set_column(2, "primary_post", pc.cast(t["primary_post"], pa.string()))
+    label = pc.fill_null(pc.cast(t["primary_post"], pa.string()), UNASSIGNED)
+    t = t.set_column(2, "primary_post", pc.replace_substring_regex(label, r"^<unspecified>$", UNASSIGNED))
     keep = pa.array(ids)
     parts = []
     for side in ("body_pre", "body_post"):
         s = t.select([side, "primary_post"]).filter(pc.is_in(t[side], value_set=keep))
-        s = s.filter(pc.and_(pc.is_valid(s["primary_post"]),
-                             pc.invert(pc.match_substring(s["primary_post"], UNSPECIFIED))))
         g = s.group_by([side, "primary_post"]).aggregate([([], "count_all")])
         parts.append(g.rename_columns(["neuron_id", "neuropil", "count"]).to_pandas())
     counts = pd.concat(parts).groupby(["neuron_id", "neuropil"], observed=True)["count"].sum().reset_index()
@@ -176,7 +176,8 @@ def fetch_edges() -> pd.DataFrame:
 def fetch_edgeroi() -> pd.DataFrame:
     """One row per (pair, neuropil) of Traced neurons, counted from the synapse-partner table.
     Every connection is kept, so per-pair sums equal the edges table. Those outside a
-    named neuropil keep MaleCNS's labels (<unspecified>, CentralBrain-unspecified, ...);
+    named neuropil keep MaleCNS's labels (<unspecified>, CentralBrain-unspecified, ...), unlike the
+    neurons' region, which spells <unspecified> UNASGD;
     a missing label would become UNASGD, though v1.0 has none."""
     t = _partners(["body_pre", "body_post", "primary_post"])
     keep = pa.array(traced_ids())

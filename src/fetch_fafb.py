@@ -75,11 +75,12 @@ def _region_from_all_synapses(neuron_ids: np.ndarray) -> pd.Series:
     post = pd.read_feather(raw_file("neuropil_post")).rename(columns={"post_pt_root_id": "neuron_id"})
     both = pd.concat([pre, post])
     both = both[both["neuron_id"].isin(neuron_ids)]      # the files also cover unproofread fragments
-    # FlyWire labels synapses outside every neuropil "None"; that is not a region,
-    # so it never wins. A neuron with only such synapses gets region "unknown".
+    # FlyWire labels synapses outside every neuropil "None" here and "UNASGD" elsewhere.
+    # Under the group's D15 rule (2026-10-15) such a label can win like any other; it is
+    # spelled UNASGD, which eda_shared maps to region_group unknown.
     unassigned = both["neuropil"].isin(["None", "UNASGD"])
-    log.info("region: %d synapses outside any neuropil ignored", int(both.loc[unassigned, "count"].sum()))
-    both = both[~unassigned]
+    log.info("region: %d synapses outside any neuropil, labelled UNASGD", int(both.loc[unassigned, "count"].sum()))
+    both["neuropil"] = both["neuropil"].where(~unassigned, "UNASGD")
     counts = (both.groupby(["neuron_id", "neuropil"])["count"].sum()
               .reset_index().sort_values(["neuron_id", "count", "neuropil"],
                                          ascending=[True, False, True]))
