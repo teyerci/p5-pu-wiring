@@ -24,7 +24,7 @@ def add_runs(par, text, size=None, bold_all=False):
         if not part:
             continue
         b = part.startswith("**")
-        t = part.strip("*`") if (b or part.startswith("`")) else part
+        t = part[2:-2] if b else part[1:-1] if part.startswith("`") else part
         r = par.add_run(t); r.bold = b or bold_all
         if size: r.font.size = Pt(size)
 
