@@ -1,0 +1,2 @@
+seed,mode,clip,folds,offset_pooled,offset_fold_min,offset_fold_max,naive_level,naive_relative,naive_brier,naive_auc_mean,pu_true_c_level,pu_true_c_relative,pu_true_c_brier,pu_true_c_auc_mean,c_train_mean
+0,connection,True,5,1.047892238243652,0.9347143593544972,1.160417227432728,0.7503465437966276,0.7160531554792945,0.003795760299428791,0.9283843554026012,1.0611281217145359,1.0126309585927158,0.003873446894955636,0.9296973586888129,0.7040467092389356

@@ -62,6 +62,19 @@ def test_run_condition_on_a_synthetic_roster():
     assert cv["lambda"] in cv["lambda_cv_losses"] and cv["excluded"] == ["type_i"]
     cv3 = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam="cv3", test_share=0.25)
     assert cv3["lambda"] in cv3["lambda_cv_losses"] and set(cv3["lambda_cv_se"]) == set(cv3["lambda_cv_losses"])
+    cv3h = run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam="cv3", test_share=0.25, inner_groups="homologue")
+    assert cv3h["inner_groups"] == "homologue" and cv3h["lambda"] in cv3h["lambda_cv_losses"]
+    with pytest.raises(ValueError, match="inner_groups"):
+        run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam="cv3", test_share=0.25, inner_groups="type")
+    for m in full["models"].values():                               # the optimal scale never raises the Brier
+        assert m["brier_scale_opt"] > 0 and m["brier_at_scale_opt"] <= m["brier_y"] + 1e-15
+    f, yk, wk = kept["f_naive"].to_numpy(), kept["y"].to_numpy(), kept["weight"].to_numpy()
+    assert len(set(wk)) > 1                                         # unequal weights
+    brier = lambda al: np.average((al * f - yk) ** 2, weights=wk)
+    al = full["models"]["naive"]["brier_scale_opt"]                 # recomputed by a grid search
+    grid = np.linspace(0.01, 5, 5000)
+    assert abs(al - grid[np.argmin([brier(g) for g in grid])]) < 2e-3
+    assert abs(full["models"]["naive"]["brier_at_scale_opt"] - brier(al)) < 1e-15
     with pytest.raises(ValueError, match="unknown feature columns"):
         run_condition(neurons, er, ids, 1.0, seed=0, per_positive=3, lam=0.1, test_share=0.25, exclude=("typ_i",))
     folds = [run_condition(neurons, er, ids, 1.0, seed=2, per_positive=3, lam=0.1, fold=k, n_folds=3) for k in range(3)]

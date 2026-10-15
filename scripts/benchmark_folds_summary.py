@@ -6,7 +6,8 @@ Brier score, and a pooled reliability table (the folds' bins merged, then regrou
 10 bins of equal weight by predicted mean). Paired over (seed, fold): the Brier difference
 naive − PU at the true c at q = 0.7 (> 0 favours PU), with a sign test, and the H3 Spearman;
 the naive model's shrinkage (thinned / unthinned mean prediction) by true synapse stratum; and how
-often each q = 0.7 model has a lower Brier than the same fold's model fitted without thinning.
+often each q = 0.7 model has a lower Brier than the same fold's model fitted without thinning;
+and, where the runs store it, the Brier-optimal scale of each model's predictions.
 Usage: python scripts/benchmark_folds_summary.py reports/benchmark_folds_0.0001.json
 Writes <json stem>_summary.csv and <json stem>_paired.json next to the input.
 """
@@ -88,6 +89,14 @@ for name in ("naive", "pu_true_c"):
     paired[f"{name}_lower_brier_than_unthinned"] = int(sum(lower))
     paired[f"{name}_vs_unthinned_sign_test_p"] = float(stats.binomtest(int(sum(lower)), len(lower), 0.5).pvalue)
 paired["brier_unthinned_mean"] = float(np.mean(list(b1.values())))
+# Brier-optimal scale α* = Σ a f y / Σ a f² per run (runs from src.benchmark after it was added);
+# α* · level is the level (Σ predicted / Σ true) that would minimise the Brier score.
+if all("brier_scale_opt" in r["models"]["naive"] for r in runs):
+    paired["brier_scale_opt"] = {
+        f"q{r['q']:g}_fold{r['fold']}_seed{r['seed']}": {
+            name: {"alpha": r["models"][name]["brier_scale_opt"],
+                   "alpha_times_level": r["models"][name]["brier_scale_opt"] * r["models"][name]["mean_p"] / r["models"][name]["mean_y"]}
+            for name in ("naive", "pu_true_c")} for r in runs}
 
 pd.set_option("display.width", 200)
 print(per_seed.round(4).to_string(index=False))

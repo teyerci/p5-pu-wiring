@@ -157,7 +157,8 @@ STRATA = [(0, 0, "0"), (1, 9, "1–9"), (10, 19, "10–19"), (20, 49, "20–49")
 
 
 def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=10, per_positive=10,
-                  lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full", keep_scores=False, clip=False) -> dict:
+                  lam=1e-2, test_share=0.2, exclude=(), fold=None, n_folds=5, target_graph="full", keep_scores=False, clip=False,
+                  inner_groups="source") -> dict:
     """One benchmark condition; `edgeroi_roster` holds the rows touching the roster.
     `lam="cv"` chooses λ with `select_lambda`, `lam="cv3"` with `select_lambda_kfold` (3 folds, 1-SE rule); `exclude` drops feature columns (e.g. "type_i").
     With `fold` set, the held-out sources are homologue-group fold `fold` of `n_folds`
@@ -165,6 +166,8 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     `test_share` of the cell types (untyped neurons as one type) is held out.
     `target_graph` is passed to `split_features` ("train": held-out target features on the training graph).
     `clip=True` limits held-out numeric features to the training range (`design`).
+    `inner_groups` sets the groups of the inner λ search: "source" (source neurons) or "homologue"
+    (the source's homologue group, matching the outer folds, which hold out whole groups).
     `keep_scores=True` adds "scores", a DataFrame of the evaluation pairs (pre_id, post_id, y,
     weight, s, f_<model>) for diagnostics; drop it before writing JSON.
 
@@ -212,11 +215,16 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
     columns = [c for c in columns if c not in exclude]
     Xtr, Xte, _ = design(f_tr, f_te, columns, clip=clip)
     lam_losses, lam_se = None, None
+    if inner_groups not in ("source", "homologue"):
+        raise ValueError("inner_groups must be 'source' or 'homologue'")
+    inner_g = pairs.loc[~test, "pre_id"].to_numpy()
+    if inner_groups == "homologue":
+        hg = pd.Series(homologue_groups(roster).to_numpy(), index=roster["neuron_id"].to_numpy())
+        inner_g = hg.reindex(inner_g).to_numpy()
     if lam == "cv":
-        lam, lam_losses = select_lambda(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(), seed=seed)
+        lam, lam_losses = select_lambda(Xtr, s[~test], a[~test], inner_g, seed=seed)
     elif lam == "cv3":
-        lam, lam_losses, lam_se = select_lambda_kfold(Xtr, s[~test], a[~test], pairs.loc[~test, "pre_id"].to_numpy(),
-                                                      n_inner=3, seed=seed)
+        lam, lam_losses, lam_se = select_lambda_kfold(Xtr, s[~test], a[~test], inner_g, n_inner=3, seed=seed)
 
     # Elkan–Noto e1: naive model on 80% of training source neurons, mean over the other 20%'s positives
     tr_src = pairs.loc[~test, "pre_id"].to_numpy()
@@ -236,7 +244,7 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
            "e1": e1, "e1_clipped": bool(e1 < 1.01 * p_floor), "p_s_train": p_floor,
            "lambda": lam, "lambda_cv_losses": lam_losses, "lambda_cv_se": lam_se, "excluded": list(exclude),
            "fold": fold, "n_folds": n_folds if fold is not None else None, "test_sources": int(len(test_sources)),
-           "target_graph": target_graph, "clip": clip,
+           "target_graph": target_graph, "clip": clip, "inner_groups": inner_groups,
            "positives_seen": int(sample.attrs["positives"]),
            "positives_true": int(len(pos_true)), "eval_pairs": int(test.sum()), "deleted_in_eval": int(is_del.sum()),
            "models": {}}
@@ -256,7 +264,11 @@ def run_condition(neurons, edgeroi_roster, ids, q, mode="synapse", seed=0, tau=1
             if msk.any():
                 by_stratum[lab] = {"weight": float(at[msk].sum()), "mean_f": float(np.average(f[msk], weights=at[msk])),
                                    "mean_y": float(np.average(yt[msk], weights=at[msk]))}
+        # Brier-optimal common scale of the predictions, α* = Σ a f y / Σ a f² (α* < 1: shrinking pays off)
+        alpha = float((at * f) @ yt / ((at * f) @ f))
         out["models"][name] = {"c": float(min(c, 1.0)), "pi": m.pi_, "converged": m.converged_, **score(yt, f, at),
+                               "brier_scale_opt": alpha,
+                               "brier_at_scale_opt": float(np.average((alpha * f - yt) ** 2, weights=at)),
                                "reliability": reliability(f, yt, at),
                                "recall_deleted_top1pct": float((f[is_del] >= thr).mean()) if is_del.any() else float("nan"),
                                "mean_f_deleted": float(f[is_del].mean()) if is_del.any() else float("nan"),
