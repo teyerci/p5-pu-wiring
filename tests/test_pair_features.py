@@ -8,7 +8,7 @@ from src.pair_features import build_pair_features, design, feature_columns
 def toy():
     neurons = pd.DataFrame({"neuron_id": [1, 2, 3], "cell_type": ["A", "B", "B"],
                             "cell_sub_class": ["columnar", None, "ring neuron"],
-                            "side": ["left", "left", "right"], "nt_type": ["gaba", "acetylcholine", "glutamate"]})
+                            "side": ["left", "left", "right"], "nt_type_corrected": ["gaba", "acetylcholine", "glutamate"]})
     edgeroi = pd.DataFrame({"pre_id": [1, 1, 1, 3, 2], "post_id": [2, 2, 3, 2, 3],
                             "neuropil": ["FB", "EB", "FB", "FB", "UNASGD"], "syn_count": [8, 4, 3, 5, 9]})
     edges = edgeroi.groupby(["pre_id", "post_id"], as_index=False)["syn_count"].sum()

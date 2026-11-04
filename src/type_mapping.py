@@ -7,7 +7,7 @@ A group is matched when it has neurons in both datasets; otherwise it is specifi
 to one dataset. This is annotation coverage, not proof that a type is sex-specific:
 annotation gaps and the volumes' coverage also leave types unmatched.
 
-malecns is its brain part (src.eda_e.brain_part), as everywhere it is set beside fafb.
+malecns is its brain part (src.fetch_malecns.load_brain), as everywhere it is set beside fafb.
 """
 from __future__ import annotations
 

@@ -1,0 +1,173 @@
+{
+ "roster": {
+  "neurons": 2875,
+  "types": 229,
+  "ordered_pairs": 8262750,
+  "is_optic": 0,
+  "region_unknown": 0,
+  "region_in_cx_neuropils": 2560,
+  "region_ties": 5,
+  "untyped": 9,
+  "side": {
+   "left": 1438,
+   "right": 1437
+  }
+ },
+ "labels": {
+  "1": {
+   "positives": 289888,
+   "prevalence": 0.03508371910078364,
+   "below_tau": 0
+  },
+  "5": {
+   "positives": 69799,
+   "prevalence": 0.008447429729811504,
+   "below_tau": 220089
+  },
+  "10": {
+   "positives": 32125,
+   "prevalence": 0.0038879307736528397,
+   "below_tau": 257763
+  },
+  "31": {
+   "positives": 4928,
+   "prevalence": 0.0005964116063054068,
+   "below_tau": 284960
+  }
+ },
+ "unrecorded": 7972862,
+ "missing": {
+  "no_output_in_cx": 37,
+  "no_input_in_cx": 2,
+  "neither": 2
+ },
+ "nt": {
+  "before": {
+   "acetylcholine": 1697,
+   "glutamate": 632,
+   "gaba": 336,
+   "serotonin": 147,
+   "dopamine": 61,
+   "octopamine": 1,
+   "unknown": 1
+  },
+  "after": {
+   "acetylcholine": 1787,
+   "glutamate": 648,
+   "gaba": 306,
+   "serotonin": 69,
+   "dopamine": 46,
+   "octopamine": 18,
+   "unknown": 1
+  },
+  "changed": 171,
+  "source_known_nt": 1825
+ },
+ "cell_sub_class_missing": 743,
+ "homologue_groups": 238,
+ "c_left_right": {
+  "5": {
+   "share": 0.7483672685363043,
+   "ci95": [
+    0.7312292961309752,
+    0.763617452930704
+   ],
+   "type_pairs": 5206,
+   "source_groups": 214
+  },
+  "10": {
+   "share": 0.7564807541241163,
+   "ci95": [
+    0.7334117410534781,
+    0.7781209775089247
+   ],
+   "type_pairs": 2546,
+   "source_groups": 208
+  },
+  "31": {
+   "share": 0.7480314960629921,
+   "ci95": [
+    0.7023778967439132,
+    0.7905285408359178
+   ],
+   "type_pairs": 508,
+   "source_groups": 142
+  }
+ },
+ "c_mirror_neuron_pairs": {
+  "5": {
+   "share": 0.6442687747035574,
+   "ci95": [
+    0.5758273437909869,
+    0.7003617131860259
+   ],
+   "type_pairs": 506,
+   "source_groups": 50,
+   "types": 55
+  },
+  "10": {
+   "share": 0.6292134831460674,
+   "ci95": [
+    0.5291107718729129,
+    0.7131939550544202
+   ],
+   "type_pairs": 267,
+   "source_groups": 45,
+   "types": 55
+  },
+  "31": {
+   "share": 0.5490196078431373,
+   "ci95": [
+    0.4166666666666667,
+    0.6551724137931034
+   ],
+   "type_pairs": 51,
+   "source_groups": 14,
+   "types": 55
+  }
+ },
+ "c_hemibrain": {
+  "scale": 2.0,
+  "tau_other": 20,
+  "same_tau": {
+   "share": 0.5759327377824488,
+   "ci95": [
+    0.5279723084560292,
+    0.6195766945739319
+   ],
+   "type_pairs": 1903,
+   "source_groups": 161
+  },
+  "scaled_tau": {
+   "share": 0.6420361247947455,
+   "ci95": [
+    0.5976424418335509,
+    0.6829713861104052
+   ],
+   "type_pairs": 1218,
+   "source_groups": 155
+  }
+ },
+ "c_malecns_never_for_claims": {
+  "scale": 1.75,
+  "tau_other": 18,
+  "same_tau": {
+   "share": 0.6700662927078022,
+   "ci95": [
+    0.6382405726383387,
+    0.7020483156948191
+   ],
+   "type_pairs": 1961,
+   "source_groups": 154
+  },
+  "scaled_tau": {
+   "share": 0.7338429464906184,
+   "ci95": [
+    0.7046343431774384,
+    0.7611566328620897
+   ],
+   "type_pairs": 1439,
+   "source_groups": 152
+  }
+ }
+}

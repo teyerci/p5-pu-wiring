@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 
 import config
+from eda_shared.corrections import (add_nt_type_corrected, align_to_proofread, fafb_neuropil_counts,
+                                    map_super_class, region_from_counts)
 from src.cache import cached
 from src.paths import FAFB_FILES, FAFB_RAW, cache_file
 from src.validate import validate_edgeroi, validate_edges, validate_neurons
@@ -28,15 +30,6 @@ SYN_SOURCE = config.FAFB_SYNAPSE_TABLE                              # buhmann
 # Source value -> agreed vocabulary. An unmapped value raises (recode).
 SIDE_MAP = {"left": "left", "right": "right", "center": "center", "na": "unknown"}
 NT_MAP = {v: v for v in ["acetylcholine", "glutamate", "gaba", "dopamine", "serotonin", "octopamine"]}
-SUPER_CLASS_MAP = {v: v for v in ["sensory", "ascending", "descending", "motor", "endocrine",
-                                  "visual_projection", "visual_centrifugal", "optic", "central"]}
-# PROVISIONAL, to raise with the group: FAFB has a "sensory_ascending" super class
-# (612 neurons) that config.SUPER_CLASS_VALUES does not list. Mapped to "sensory"
-# so the sensory/afferent distinction survives; the original label is kept in
-# cell_class where FlyWire gives one.
-SUPER_CLASS_MAP["sensory_ascending"] = "sensory"
-
-
 def recode(series: pd.Series, mapping: dict, column: str) -> pd.Series:
     """Map source values to the vocabulary; an unmapped value raises, a None mapping means unknown."""
     unmapped = series[~series.isin(list(mapping)) & series.notna()].unique()
@@ -64,45 +57,19 @@ def _connections() -> pd.DataFrame:
                            columns=["pre_pt_root_id", "post_pt_root_id", "neuropil", "syn_count"])
 
 
-def _region_from_all_synapses(neuron_ids: np.ndarray) -> pd.Series:
-    """Neuropil holding most of each neuron's synapses (inputs plus outputs).
-
-    Uses FlyWire's per-neuron neuropil counts, which include synapses with
-    non-proofread partners ("from all synapses"). Ties: the tie rule is a
-    week 3 decision; until then the alphabetically first neuropil wins.
-    """
-    pre = pd.read_feather(raw_file("neuropil_pre")).rename(columns={"pre_pt_root_id": "neuron_id"})
-    post = pd.read_feather(raw_file("neuropil_post")).rename(columns={"post_pt_root_id": "neuron_id"})
-    both = pd.concat([pre, post])
-    both = both[both["neuron_id"].isin(neuron_ids)]      # the files also cover unproofread fragments
-    # FlyWire labels synapses outside every neuropil "None" here and "UNASGD" elsewhere.
-    # Under the group's D15 rule (2026-10-15) such a label can win like any other; it is
-    # spelled UNASGD, which eda_shared maps to region_group unknown.
-    unassigned = both["neuropil"].isin(["None", "UNASGD"])
-    log.info("region: %d synapses outside any neuropil, labelled UNASGD", int(both.loc[unassigned, "count"].sum()))
-    both["neuropil"] = both["neuropil"].where(~unassigned, "UNASGD")
-    counts = (both.groupby(["neuron_id", "neuropil"])["count"].sum()
-              .reset_index().sort_values(["neuron_id", "count", "neuropil"],
-                                         ascending=[True, False, True]))
-    top = counts.drop_duplicates("neuron_id")
-    second = counts[counts.duplicated("neuron_id")].drop_duplicates("neuron_id").set_index("neuron_id")["count"]
-    ties = int((top.set_index("neuron_id")["count"] == second.reindex(top["neuron_id"]).values).sum())
-    log.info("region: %d neurons tie between their top two neuropils", ties)
-    return top.set_index("neuron_id")["neuropil"]
+def _neuropil_counts(neuron_ids: np.ndarray) -> pd.DataFrame:
+    """FlyWire's per-neuron neuropil counts for these neurons; the files also cover unproofread fragments."""
+    pre = pd.read_feather(raw_file("neuropil_pre"))
+    post = pd.read_feather(raw_file("neuropil_post"))
+    return fafb_neuropil_counts(pre[pre["pre_pt_root_id"].isin(neuron_ids)],
+                                post[post["post_pt_root_id"].isin(neuron_ids)])
 
 
 def fetch_neurons() -> pd.DataFrame:
+    """The 783 proofread neurons (Corrections 3), in the order eda_shared's README gives."""
     ann = pd.read_csv(raw_file("annotations"), sep="\t", low_memory=False,
                       dtype={"root_id": "int64"})
-    # Ids that appear in the connection table but have no annotation row are
-    # added with unknown annotations (Data Conventions, first EDA check).
-    conn = _connections()
-    edge_ids = pd.unique(np.concatenate([conn["pre_pt_root_id"].to_numpy(), conn["post_pt_root_id"].to_numpy()]))
-    extra = np.setdiff1d(edge_ids, ann["root_id"].to_numpy())
-    if len(extra):
-        log.info("adding %d edge ids without an annotation row", len(extra))
-        ann = pd.concat([ann, pd.DataFrame({"root_id": extra})], ignore_index=True)
-
+    sc = map_super_class(ann["super_class"], DATASET)                   # correction 2
     nt_type = recode(ann["top_nt"], NT_MAP, "nt_type")
     df = pd.DataFrame({
         "neuron_id": ann["root_id"].astype("int64"),
@@ -111,9 +78,9 @@ def fetch_neurons() -> pd.DataFrame:
         "cell_type": ann["cell_type"],
         "cell_class": ann["cell_class"],
         "cell_sub_class": ann["cell_sub_class"],
-        "super_class": recode(ann["super_class"], SUPER_CLASS_MAP, "super_class"),
+        "super_class": sc["super_class"].array,
         "side": recode(ann["side"], SIDE_MAP, "side"),
-        "region": ann["root_id"].map(_region_from_all_synapses(ann["root_id"].to_numpy())).fillna("unknown"),
+        "region": "unknown",
         "nt_type": nt_type,
         "nt_confidence": ann["top_nt_conf"].where(nt_type != "unknown"),
         "n_pre": pd.NA,       # not provided by FlyWire (Data Conventions: left missing)
@@ -125,8 +92,16 @@ def fetch_neurons() -> pd.DataFrame:
         "status": ann["status"],
         "hemilineage": ann["ito_lee_hemilineage"],
         "nt_known": ann["known_nt"],
+        "super_class_source": sc["super_class_source"].array,
     })
-    return _cast(df, config.NEURON_SCHEMA)
+    df = df.astype({c: config.NEURON_SCHEMA[c][0] for c in df.columns})
+    df, report = align_to_proofread(df, np.load(raw_file("proofread_ids")))      # correction 3
+    log.info("neuron set: %s", report)
+    ids = df["neuron_id"].to_numpy()
+    reg = region_from_counts(ids, _neuropil_counts(ids)).set_index("neuron_id")  # correction 6
+    df["region"] = df["neuron_id"].map(reg["region"]).astype("string")
+    log.info("region: %d neurons tie between their top two neuropils", int(reg["tied"].sum()))
+    return _cast(add_nt_type_corrected(df), config.NEURON_SCHEMA)                # correction 1
 
 
 def _aggregate(conn: pd.DataFrame, by: list[str]) -> pd.DataFrame:
@@ -163,7 +138,7 @@ def _cast(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
 
 def load_neurons(force_refresh: bool = False) -> pd.DataFrame:
     return cached(cache_file(DATASET, "neurons", RELEASE, ANN_SOURCE),
-                  fetch_neurons, validate_neurons, force_refresh)
+                  fetch_neurons, validate_neurons, force_refresh, columns=config.NEURON_SCHEMA)
 
 
 def load_edges(force_refresh: bool = False) -> pd.DataFrame:

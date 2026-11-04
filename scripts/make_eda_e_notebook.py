@@ -8,20 +8,20 @@ cells = [
     md("# EDA workstream E — regions, completeness and discrepancy\n\n"
        "Owner: Project 5. Question: where do neurons and synapses sit, how complete is the record, "
        "and how often does an edge recur in another copy?\n\n"
-       "fafb (783) and malecns (v1.0). As the plan's Definitions say, malecns means its brain part: "
-       "neurons with `in_brain`, the edges among them and, in edgeroi, brain neuropils only. "
-       "The nerve-cord list passed to `add_provisional_flags` is provisional (`src/eda_e.py`, "
-       "`MALECNS_NERVE_CORD`). E6 uses the public hemibrain v1.2 export (the plan pins v1.2.1)."),
+       "Rerun on the tables of eda_shared v0.2.0 (Shared Data Corrections); the figures of the earlier "
+       "tables are kept in `figures/eda_v0.1.1/`.\n\n"
+       "fafb (783, the 139,255 proofread neurons) and malecns (v1.0). malecns means its brain part, cropped "
+       "by synapse location (`fetch_malecns.load_brain`): neurons with a connection in a brain neuropil, and "
+       "edges counting brain synapses only. E6 uses the public hemibrain v1.2 export (the plan pins v1.2.1)."),
     code('import sys, json, warnings\nfrom pathlib import Path\n'
          'ROOT = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "config.py").exists())\n'
          'sys.path.insert(0, str(ROOT))\nwarnings.filterwarnings("ignore", category=FutureWarning)'),
     code("import pandas as pd\nfrom IPython.display import Image, display\n"
          "from src import fetch_fafb, fetch_malecns\n"
          "from src import eda_e_figures as F\n"
-         "from src.eda_e import brain_part\n"
          "fafb = (fetch_fafb.load_neurons(), fetch_fafb.load_edges(), fetch_fafb.load_edgeroi())\n"
          "mal_edges_all = fetch_malecns.load_edges()\n"
-         "mal = brain_part(fetch_malecns.load_neurons(), mal_edges_all, fetch_malecns.load_edgeroi())\n"
+         "mal = fetch_malecns.load_brain()[:3]\n"
          "from src.eda_e import columnar_cx_types\n"
          "FAFB_COLUMNAR = columnar_cx_types(fafb[0])\n"
          "print('malecns brain part:', [len(t) for t in mal])\n"

@@ -1,5 +1,7 @@
 # Workstream E: regions, completeness and discrepancy (one-page summary)
 
+> **Corrected tables (eda_shared v0.2.0, 2026-11-04).** This report was written on v0.1.1. The figures in `figures/eda/` and `reports/eda_E_stats.json` are rerun; `figures/eda_v0.1.1/` and `reports/eda_E_stats_v0.1.1.json` keep the old ones. Numbers below are v0.1.1 unless they match the stats file. What moved most: malecns brain part 142,745 -> 144,414 neurons; malecns central 43,870 -> 45,497 (E1); gap below 0.10 stays 20%; within-region share 0.60 -> 0.59 (E3). E4 ascending, brain partners: median 0.27 -> 0.07, and the two measure different things. The old figure counted all CNS synapses between brain neurons; brain edges are now cropped to brain synapses (Corrections 4), so the numerator lost the nerve-cord synapses. On today's ascending neurons the old measure gives 0.42. Pooled, brain partners: 0.91 -> 0.89. FAFB moved in the third digit. E5 FAFB did not change.
+
 Tarkan Eyerci (Project 5) · 15.10.2026 · FAFB 783 (annotations v3.2.0, Buhmann) and MaleCNS v1.0 (Traced, confidence ≥ 0.5, brain part: 142,745 neurons); E6 also uses the hemibrain v1.2 public export. Central = `is_optic` False. Figures: `figures/eda/E*`; notebook: `notebooks/eda_E.ipynb` (about 2 minutes from the cache, no network); full report with definitions and deviations: `reports/eda_E.md`.
 
 | Item | Number | What it means |

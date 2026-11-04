@@ -104,6 +104,7 @@ def fetch_neurons() -> pd.DataFrame:
         "dimorphism": pd.NA,
         "status": STATUS,
         "hemilineage": pd.NA, "nt_known": pd.NA,
+        "nt_type_corrected": "unknown", "nt_correction_source": "predicted", "super_class_source": pd.NA,
     })
     return _cast(df, config.NEURON_SCHEMA)
 
@@ -148,7 +149,8 @@ def cropped_typed_share(types=None) -> dict:
 
 
 def load_neurons(force_refresh: bool = False) -> pd.DataFrame:
-    return cached(cache_file(DATASET, "neurons", RELEASE, SOURCE), fetch_neurons, validate_neurons, force_refresh)
+    return cached(cache_file(DATASET, "neurons", RELEASE, SOURCE), fetch_neurons, validate_neurons, force_refresh,
+                  columns=config.NEURON_SCHEMA)
 
 
 def load_edges(force_refresh: bool = False) -> pd.DataFrame:

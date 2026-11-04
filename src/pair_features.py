@@ -107,7 +107,7 @@ def build_pair_features(neurons: pd.DataFrame, edges: pd.DataFrame, edgeroi: pd.
     side = nn["side"].astype(str).to_numpy()
     feats = pd.DataFrame({
         "pre_id": pairs["pre_id"].to_numpy(), "post_id": pairs["post_id"].to_numpy(),
-        "sub_i": sub[pi], "sub_j": sub[pj], "nt_i": nn["nt_type"].astype(str).to_numpy()[pi],
+        "sub_i": sub[pi], "sub_j": sub[pj], "nt_i": nn["nt_type_corrected"].astype(str).to_numpy()[pi],
         "type_i": ctype[pi], "type_j": ctype[pj],
         "same_type": ((ctype[pi] == ctype[pj]) & known[pi] & known[pj]).astype(int), "same_side": (side[pi] == side[pj]).astype(int),
         "out_deg_i": outdeg[pi] - self_out, "in_deg_j": indeg[pj] - self_in,

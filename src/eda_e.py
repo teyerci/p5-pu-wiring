@@ -10,36 +10,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from eda_shared.eda_helpers import add_provisional_flags, load_neuropil_table
+from eda_shared.eda_helpers import MALECNS_NERVE_CORD, add_provisional_flags, load_neuropil_table
 
 OPTIC = {"LA", "ME", "AME", "LO", "LOP"}
 CX_NEUROPILS = ["PB", "FB", "EB", "NO"]
 NOT_A_NEUROPIL = {"UNASGD", "None", "unknown"}
 UNSPECIFIED = "unspecified"   # malecns labels for synapses outside a named neuropil
-# PROVISIONAL, to agree with the group (README open issue 6): malecns nerve-cord
-# neuropils and nerves, as base names (eda_shared strips one side suffix). Passed
-# to add_provisional_flags as `nerve_cord`. CRN (16 neurons, 8 synapses) is a nerve
-# label of unclear position; it is outside the brain table, so it goes here.
-MALECNS_NERVE_CORD = frozenset({
-    "ANm", "IntTct", "LTct", "Ov", "CRN", "VNC-unspecified", "CV-unspecified",
-    "LegNp(T1)", "LegNp(T2)", "LegNp(T3)", "mVAC(T1)", "mVAC(T2)", "mVAC(T3)",
-    "NTct(UTct-T1)", "WTct(UTct-T2)", "HTct(UTct-T3)",
-    "ADMN", "AbN1", "AbN2", "AbN3", "AbN4", "AbNT", "CvN", "DMetaN", "DProN",
-    "MesoAN", "MesoLN", "MetaLN", "PDMN", "PrN", "ProAN", "ProCN", "ProLN", "VProN",
-})
-# PROVISIONAL (D15, agreed in the group chat on 2026-10-15, to confirm on Thursday):
-# MaleCNS labels for synapses outside a named neuropil can be a neuron's region, as
-# two neuropil-table rows with region_group unknown that keep their neurons in the
-# brain. eda_shared's table does not have them yet, so flags() passes them alongside
-# it; rows the shared table gains later take precedence.
-PROPOSED_NEUROPIL_ROWS = pd.DataFrame({
-    "neuropil": ["Optic-unspecified", "CentralBrain-unspecified"],
-    "full_name": ["optic lobe, outside named neuropils", "central brain, outside named neuropils"],
-    "is_optic": [True, False],
-    "region_group": ["unknown", "unknown"],
-    "status": ["proposed", "proposed"],
-    "basis": ["MaleCNS label; group proposal for D15", "MaleCNS label; group proposal for D15"],
-}).astype({"neuropil": "string", "region_group": "string"}).set_index("neuropil")
 WEIGHT_BINS = [(1, 1, "1"), (2, 2, "2"), (3, 4, "3–4"), (5, 9, "5–9"),
                (10, 19, "10–19"), (20, 49, "20–49"), (50, np.inf, "50+")]
 
@@ -48,34 +24,9 @@ def base_neuropil(names: pd.Series) -> pd.Series:
     return names.astype("string").str.replace(r"(_[LR]|\([LR]\))$", "", regex=True)
 
 
-def neuropil_table() -> pd.DataFrame:
-    """eda_shared's neuropil table plus the proposed rows it does not have yet."""
-    table = load_neuropil_table()
-    extra = PROPOSED_NEUROPIL_ROWS[~PROPOSED_NEUROPIL_ROWS.index.isin(table.index)]
-    return pd.concat([table, extra])
-
-
 def flags(neurons: pd.DataFrame) -> pd.DataFrame:
     """neurons with is_optic, region_group, neuropil (base name) and in_brain from eda_shared."""
-    return add_provisional_flags(neurons, table=neuropil_table(), nerve_cord=MALECNS_NERVE_CORD)
-
-
-def brain_part(neurons, edges, edgeroi=None):
-    """The plan's malecns population: neurons with in_brain, the edges among them and,
-    for edgeroi, only the rows in brain neuropils (nerve-cord rows dropped, so a
-    neuron's per-neuropil synapses cover the same volume as in fafb).
-
-    Neurons with region unknown have in_brain False and are left out as well.
-    """
-    fl = flags(neurons)
-    keep = fl.loc[fl["in_brain"], "neuron_id"]
-    n = neurons[neurons["neuron_id"].isin(keep)].reset_index(drop=True)
-    e = edges[edges["pre_id"].isin(keep) & edges["post_id"].isin(keep)].reset_index(drop=True)
-    if edgeroi is None:
-        return n, e
-    er = edgeroi[edgeroi["pre_id"].isin(keep) & edgeroi["post_id"].isin(keep)]
-    nerve = base_neuropil(er["neuropil"]).isin(MALECNS_NERVE_CORD) | er["neuropil"].isin(MALECNS_NERVE_CORD)
-    return n, e, er[~nerve.to_numpy()].reset_index(drop=True)
+    return add_provisional_flags(neurons, nerve_cord=MALECNS_NERVE_CORD)
 
 
 def real_neuropil(names: pd.Series) -> np.ndarray:
@@ -225,10 +176,10 @@ def e4_malecns_input_ratio(neurons, edges_all, edges_brain=None, population="cen
     """E4: input ratio = total_in_syn / n_post per neuron (malecns; n_post from body-stats).
 
     `neurons` is the brain part; inputs are counted over `edges_all`, every Traced
-    partner. Deviation from the plan's brain-part rule, which exists to compare with
-    fafb: E4 is malecns-only, and dropping nerve-cord partners would read as lost
-    input (ascending neurons fall from a median 0.93 to 0.27). `edges_brain`, if
-    given, adds the brain-partners-only figures for comparison.
+    partner. Deviation from the brain-part rule, which exists to compare with fafb:
+    E4 is malecns-only, and n_post counts the whole neuron, so dropping nerve-cord
+    synapses would read as lost input. `edges_brain`, if given, adds the
+    brain-only figures for comparison.
     """
     fl = flags(neurons)
     ids = population_ids(fl, population)

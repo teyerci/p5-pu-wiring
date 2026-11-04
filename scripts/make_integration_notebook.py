@@ -56,8 +56,8 @@ cells = [
     md("## Cross-dataset type mapping and coverage (week 3)\n\n"
        "fafb `cell_type` ↔ malecns `flywire_type` only (never the type names), compound values merged into "
        "match groups; malecns is its brain part (`src/type_mapping.py`)."),
-    code("from src.eda_e import brain_part\nfrom src.type_mapping import mapping_table, coverage\n"
-         "mal_brain = brain_part(mal[0], mal[1])[0]\n"
+    code("from src.type_mapping import mapping_table, coverage\n"
+         "mal_brain = fetch_malecns.load_brain()[0]\n"
          "tmap = mapping_table(neurons, mal_brain)\n"
          "overall, by_region = coverage(neurons, mal_brain, tmap)\n"
          "tmap.to_csv(ROOT / 'reports' / 'type_mapping_fafb_malecns.csv')\n"

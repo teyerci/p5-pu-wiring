@@ -42,7 +42,7 @@ def test_run_condition_on_a_synthetic_roster():
     ids = np.arange(1, n + 1)
     neurons = pd.DataFrame({"neuron_id": ids, "cell_type": [f"T{i % 12}" for i in ids],
                             "cell_sub_class": "columnar", "side": np.where(ids % 2, "left", "right"),
-                            "nt_type": "acetylcholine", "cell_class": "CX"})
+                            "nt_type_corrected": "acetylcholine", "cell_class": "CX"})
     pre, post = rng.integers(1, n + 1, 1500), rng.integers(1, n + 1, 1500)
     er = pd.DataFrame({"pre_id": pre, "post_id": post, "neuropil": rng.choice(["FB", "EB", "LAL_L"], 1500),
                        "syn_count": rng.integers(1, 30, 1500)})

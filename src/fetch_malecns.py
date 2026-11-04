@@ -1,18 +1,21 @@
 """MaleCNS (male-cns v1.0) fetch functions: neurons, edges, edgeroi.
 
-Sources are Janelia's public bulk "flat connectome" files for v1.0 (src/paths.py),
-so no neuPrint token is needed. They are already filtered at synapse confidence
+Sources are Janelia's public bulk "flat connectome" files for v1.0 (src/paths.py), plus
+neuPrint's per-ROI counts for region, which need a token
+(scripts/fetch_malecns_roi_counts.py). The bulk files are already filtered at synapse confidence
 0.5 (config.MALECNS_SYN_CONFIDENCE). Only neurons with status Traced
 (config.MALECNS_STATUS) are kept, and edges between them.
 
 Raw files are downloaded once into data/raw/; the tables built from them go
 through the cache helper. Nothing downstream sees Janelia's column names.
+load_brain builds the brain part (Corrections 4), the table to use beside fafb.
 
 Region names are kept in neuPrint's spelling (ME(R), CA(L), ...); eda_shared's
 canonical_neuropil maps them to FlyWire base names.
 """
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import urllib.request
@@ -24,16 +27,20 @@ import pyarrow.compute as pc
 import pyarrow.feather as pf
 
 import config
+from eda_shared.corrections import (add_nt_type_corrected, malecns_brain_part, malecns_neuropil_counts,
+                                    map_super_class, region_from_counts)
+from eda_shared.eda_helpers import MALECNS_NERVE_CORD
 from src.cache import cached
 from src.fetch_fafb import _cast, recode
-from src.paths import MALECNS_FILES, MALECNS_RAW, cache_file
-from src.validate import validate_edgeroi, validate_edges, validate_neurons
+from src.paths import MALECNS_FILES, MALECNS_RAW, MALECNS_ROI_COUNTS, cache_file
+from src.validate import validate_dataset, validate_edgeroi, validate_edges, validate_neurons
 
 log = logging.getLogger(__name__)
 
 DATASET = "malecns"
 RELEASE = config.MALECNS_DATASET.split(":")[1]                      # v1.0
 SOURCE = config.MALECNS_STATUS.lower()                               # traced
+BRAIN_SOURCE = f"{SOURCE}-brain"
 CONF = config.MALECNS_SYN_CONFIDENCE                                 # 0.5
 UNASSIGNED = "UNASGD"      # FlyWire's spelling for "no neuropil"; canonical_neuropil maps it to unknown
 
@@ -42,27 +49,6 @@ SIDE_MAP = {"L": "left", "R": "right", "M": "center", "unknown": "unknown"}
 NT_MAP = {v: v for v in ["acetylcholine", "glutamate", "gaba", "dopamine", "serotonin",
                          "octopamine", "histamine"]}
 NT_MAP["unclear"] = None                                             # -> unknown
-# PROVISIONAL, to raise with the group: config.SUPER_CLASS_VALUES has no
-# MaleCNS-only levels yet ("after EDA"), so every MaleCNS superclass is mapped
-# onto the FAFB levels. Levels with no FAFB counterpart (nerve cord intrinsic,
-# enteric, unconfirmed "_tbc" without a clear base) become unknown; the cell
-# class and type columns keep the detail.
-SUPER_CLASS_MAP = {
-    "ol_intrinsic": "optic", "cb_intrinsic": "central",
-    "visual_projection": "visual_projection", "visual_projection_tbc": "visual_projection",
-    "visual_centrifugal": "visual_centrifugal",
-    "ol_sensory": "sensory", "cb_sensory": "sensory", "vnc_sensory": "sensory",
-    "cb_sensory_tbc": "sensory", "vnc_sensory_tbc": "sensory",
-    "sensory_ascending": "sensory", "sensory_ascending_tbc": "sensory", "sensory_descending": "sensory",
-    "ascending_neuron": "ascending", "descending_neuron": "descending",
-    "cb_motor": "motor", "vnc_motor": "motor",
-    "cb_efferent": "motor", "vnc_efferent": "motor", "efferent_ascending": "motor",
-    "efferent_descending": "motor",
-    "cb_endocrine": "endocrine", "vnc_endocrine": "endocrine",
-    "vnc_intrinsic": None, "ENS": None, "vnc_tbc": None,
-}
-
-
 def raw_file(key: str):
     """Path to a raw MaleCNS file, downloading it on first use."""
     name, url = MALECNS_FILES[key]
@@ -86,37 +72,16 @@ def _partners(columns: list[str]) -> pa.Table:
     return pf.read_table(raw_file("syn_partners"), columns=columns)
 
 
-def _region_from_all_synapses(ids: np.ndarray) -> pd.Series:
-    """Neuropil holding most of each neuron's synapses (inputs plus outputs).
-
-    Counted from the synapse-partner table over all partners, Traced or not
-    ("from all synapses"), one count per synaptic connection on each side, as
-    FlyWire's per-neuron neuropil counts do for FAFB. The neuropil of a
-    connection is the table's primary_post. Labels outside the named neuropils
-    (CentralBrain-unspecified, Optic-unspecified(L), ...) can win like any other
-    (the group's D15 rule, 2026-10-15); <unspecified> (no ROI at all) and missing
-    labels are spelled UNASGD, as FlyWire does. Ties: the alphabetically first
-    neuropil, until week 3 decides.
-    """
-    t = _partners(["body_pre", "body_post", "primary_post"])
-    label = pc.fill_null(pc.cast(t["primary_post"], pa.string()), UNASSIGNED)
-    t = t.set_column(2, "primary_post", pc.replace_substring_regex(label, r"^<unspecified>$", UNASSIGNED))
-    keep = pa.array(ids)
-    parts = []
-    for side in ("body_pre", "body_post"):
-        s = t.select([side, "primary_post"]).filter(pc.is_in(t[side], value_set=keep))
-        g = s.group_by([side, "primary_post"]).aggregate([([], "count_all")])
-        parts.append(g.rename_columns(["neuron_id", "neuropil", "count"]).to_pandas())
-    counts = pd.concat(parts).groupby(["neuron_id", "neuropil"], observed=True)["count"].sum().reset_index()
-    counts = counts.sort_values(["neuron_id", "count", "neuropil"], ascending=[True, False, True])
-    top = counts.drop_duplicates("neuron_id")
-    second = counts[counts.duplicated("neuron_id")].drop_duplicates("neuron_id").set_index("neuron_id")["count"]
-    ties = int((top.set_index("neuron_id")["count"] == second.reindex(top["neuron_id"]).values).sum())
-    log.info("region: %d neurons tie between their top two neuropils", ties)
-    return top.set_index("neuron_id")["neuropil"].astype(str)
+def _roi_counts() -> pd.DataFrame:
+    """Per neuron and primary ROI, upstream + downstream over all partners (neuPrint)."""
+    if not MALECNS_ROI_COUNTS.exists():
+        raise FileNotFoundError(f"{MALECNS_ROI_COUNTS} is missing: run scripts/fetch_malecns_roi_counts.py")
+    return malecns_neuropil_counts(pd.read_parquet(MALECNS_ROI_COUNTS))
 
 
 def fetch_neurons() -> pd.DataFrame:
+    """Every Traced neuron. Region follows the shared rule over brain neuropils, so a
+    neuron with no connection in the brain has region unknown and is not in load_brain."""
     ann = pd.read_feather(raw_file("annotations"))
     ann = ann[ann["status"] == config.MALECNS_STATUS].reset_index(drop=True)
     ids = ann["bodyId"].to_numpy("int64")
@@ -128,6 +93,8 @@ def fetch_neurons() -> pd.DataFrame:
 
     side_src = ann["somaSide"].where(ann["somaSide"].notna(), ann["rootSide"])     # somaSide, else rootSide
     nt_type = recode(ann["bodyId"].map(nt["predicted_nt"]), NT_MAP, "nt_type")
+    sc = map_super_class(ann["superclass"], DATASET)                    # correction 2
+    reg = region_from_counts(ids, _roi_counts(), nerve_cord=MALECNS_NERVE_CORD).set_index("neuron_id")   # correction 6
     df = pd.DataFrame({
         "neuron_id": ann["bodyId"].astype("int64"),
         "dataset": DATASET,
@@ -135,9 +102,9 @@ def fetch_neurons() -> pd.DataFrame:
         "cell_type": ann["type"],
         "cell_class": ann["class"],
         "cell_sub_class": ann["subclass"],
-        "super_class": recode(ann["superclass"], SUPER_CLASS_MAP, "super_class"),
+        "super_class": sc["super_class"].array,
         "side": recode(side_src, SIDE_MAP, "side"),
-        "region": ann["bodyId"].map(_region_from_all_synapses(ids)).fillna("unknown"),
+        "region": ann["bodyId"].map(reg["region"]),
         "nt_type": nt_type,
         "nt_confidence": ann["bodyId"].map(nt["predicted_nt_confidence"]).where(nt_type != "unknown"),
         "n_pre": ann["bodyId"].map(stats["pre"]),
@@ -149,8 +116,9 @@ def fetch_neurons() -> pd.DataFrame:
         "status": ann["status"],
         "hemilineage": ann["itoleeHl"],
         "nt_known": ann["bodyId"].map(nt["ground_truth"]),          # verbatim, as FAFB known_nt
+        "super_class_source": sc["super_class_source"].array,
     })
-    return _cast(df, config.NEURON_SCHEMA)
+    return _cast(add_nt_type_corrected(df), config.NEURON_SCHEMA)       # correction 1
 
 
 def _finish(e: pd.DataFrame) -> pd.DataFrame:
@@ -176,8 +144,7 @@ def fetch_edges() -> pd.DataFrame:
 def fetch_edgeroi() -> pd.DataFrame:
     """One row per (pair, neuropil) of Traced neurons, counted from the synapse-partner table.
     Every connection is kept, so per-pair sums equal the edges table. Those outside a
-    named neuropil keep MaleCNS's labels (<unspecified>, CentralBrain-unspecified, ...), unlike the
-    neurons' region, which spells <unspecified> UNASGD;
+    named neuropil keep MaleCNS's labels (<unspecified>, CentralBrain-unspecified, ...);
     a missing label would become UNASGD, though v1.0 has none."""
     t = _partners(["body_pre", "body_post", "primary_post"])
     keep = pa.array(traced_ids())
@@ -190,7 +157,7 @@ def fetch_edgeroi() -> pd.DataFrame:
 
 def load_neurons(force_refresh: bool = False) -> pd.DataFrame:
     return cached(cache_file(DATASET, "neurons", RELEASE, SOURCE),
-                  fetch_neurons, validate_neurons, force_refresh)
+                  fetch_neurons, validate_neurons, force_refresh, columns=config.NEURON_SCHEMA)
 
 
 def load_edges(force_refresh: bool = False) -> pd.DataFrame:
@@ -201,3 +168,29 @@ def load_edges(force_refresh: bool = False) -> pd.DataFrame:
 def load_edgeroi(force_refresh: bool = False) -> pd.DataFrame:
     return cached(cache_file(DATASET, "edgeroi", RELEASE, SOURCE, min_syn=config.FETCH_MIN_SYN, conf=CONF),
                   fetch_edgeroi, validate_edgeroi, force_refresh)
+
+
+def load_brain(force_refresh: bool = False) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
+    """The brain part (Corrections 4): neurons, edges, edgeroi and the Step 0 counts.
+
+    Cropped by synapse location, so edge weights count brain synapses only. These
+    edges are the denominator for relative weights (Corrections 5).
+    """
+    n_path = cache_file(DATASET, "neurons", RELEASE, BRAIN_SOURCE)
+    e_path = cache_file(DATASET, "edges", RELEASE, BRAIN_SOURCE, min_syn=config.FETCH_MIN_SYN, conf=CONF)
+    r_path = cache_file(DATASET, "edgeroi", RELEASE, BRAIN_SOURCE, min_syn=config.FETCH_MIN_SYN, conf=CONF)
+    report_path = n_path.with_suffix(".report.json")
+    paths = [n_path, e_path, r_path, report_path]
+    if all(p.exists() for p in paths) and not force_refresh:
+        return (pd.read_parquet(n_path), pd.read_parquet(e_path), pd.read_parquet(r_path),
+                json.loads(report_path.read_text()))
+    edgeroi = load_edgeroi().astype({"neuropil": "category"})           # eda_shared's memory advice
+    n, e, er, report = malecns_brain_part(load_neurons(force_refresh), edgeroi, _roi_counts())
+    n, e, er = _cast(n, config.NEURON_SCHEMA), _cast(e, config.EDGE_SCHEMA), _cast(er, config.EDGEROI_SCHEMA)
+    validate_dataset(n, e, er)
+    n_path.parent.mkdir(parents=True, exist_ok=True)
+    n.to_parquet(n_path, index=False)
+    e.to_parquet(e_path, index=False)
+    er.to_parquet(r_path, index=False)
+    report_path.write_text(json.dumps(report, indent=1))
+    return n, e, er, report

@@ -42,6 +42,26 @@ data/raw/  data/cache/ gitignored
 | MaleCNS | male-cns:v1.0, Traced, synapse confidence ≥ 0.5 | Janelia's public flat-connectome files for v1.0 (male-cns.janelia.org/download, `minconf-0.5` files); no token needed. Addresses in `src/paths.py` |
 | Hemibrain | v1.2.1 pinned by the EDA plan; **v1.2 used** | Janelia's public v1.2 export of non-cropped Traced neurons (`exported-traced-adjacencies-v1.2`); v1.2.1 is only in neuPrint (token). Used in E6. See project decisions |
 
+## Step 0 on the corrected tables (eda_shared v0.2.0)
+
+`scripts/step0.py` rebuilds what is missing, checks every reference value in Shared Data Corrections and writes `reports/step0.md` and `.json`. **23 of 23 reference values match.** The `eda_shared` tests (49) pass on the unchanged v0.2.0 files.
+
+| Quantity | FAFB | MaleCNS (brain part) |
+|---|---|---|
+| Neurons | 139,255 = 139,241 kept + 14 added; 7 dropped | 144,414 kept; 20,708 dropped (ascending kept 1,841; sensory_ascending kept 534) |
+| Edges ≥ 1 / ≥ 5 | 15,091,983 / 2,700,513 | 21,706,010 / 5,143,528 |
+| Region ties (alphabetical rule) | 232 | 76 |
+| Region unknown | 281 | see `reports/step0.json` |
+| Central population | 45,203 | 45,642 |
+| Self-connections dropped | 0 | 101 (all Traced) |
+| Transmitter correction | known_nt 77,169 rows, 18,513 changed; dopamine 5,909 → 638; Kenyon cells 5,177 of 5,177 acetylcholine | kc_override 4,064 rows, all changed (all Traced) |
+
+P5's roster stays at 2,875 neurons; the transmitter changes for 171 of them. MaleCNS region comes from neuPrint's per-ROI counts (`scripts/fetch_malecns_roi_counts.py`, token in `.env`); a one-off comparison on 2026-11-03 found our edge-ROI table equal to neuPrint on 40 sampled neurons (11,356 rows; the sample was not saved). Figures and statistics from before the corrections are kept in `figures/eda_v0.1.1/` and `reports/eda_E_stats_v0.1.1.json`.
+
+Where a section below still states a v0.1.1 number or rule (FAFB rows 139,262, `sensory_ascending` → `sensory`, region counted from `syn-partners`, a local nerve-cord list), this section and `eda_shared/corrections.py` replace it; those sections are kept as the record of week 2.
+
+No naive model is run until the lock note is approved. The benchmarks further down were run before the corrections and before the lock note; they are not evidence for it.
+
 ## Schema
 
 The neuron and edge schemas are defined once, in `config.py` (`NEURON_SCHEMA`, `EDGE_SCHEMA`, `EDGEROI_SCHEMA`), and every validator in `src/validate.py` reads from there. Cache files:
@@ -103,6 +123,8 @@ Files: `body-annotations` (annotations), `body-neurotransmitters`, `body-stats` 
 
 ## Counts and timings (FAFB)
 
+As built in week 2 (v0.1.1); current counts are in the Step 0 section.
+
 | Quantity | Value | Course check |
 |---|---|---|
 | Annotated neurons | 139,248 | 139,248 ✓ |
@@ -141,6 +163,8 @@ The five raw files total 8.6 GB (the synapse-partner file is 6.8 GB). A cold bui
 
 ## Open issues to raise with the group
 
+Items 1, 2, 4, 5, 6, 7 and 8 were settled by Shared Data Corrections (v0.2.0) and are kept as the record.
+
 1. **`sensory_ascending`** (612 FAFB neurons) is a FAFB super class that `config.SUPER_CLASS_VALUES` does not list. It is mapped to `sensory` for now. It needs a group decision: add the level to the vocabulary, or keep the mapping.
 2. **Missing ids.** 14 edge ids have no annotation row, not the 7 the conventions expect. There are 139,255 proofread ids against 139,248 annotation rows, and the two lists differ in both directions.
 3. **FAFB `n_post` could be filled.** Zenodo's `per_neuron_neuropil_count_post_783.feather` gives each neuron's input synapses across all partners. That would enable the plausibility check and item E4 on FAFB too.
@@ -158,7 +182,7 @@ At the end of `notebooks/00_integration.ipynb`; summary in `reports/step15_discr
 - **Discrepancy count** (`src/discrepancy.py`): central-complex type pairs recorded at τ in one copy, and their status in another: recorded, below τ, or absent. Three comparisons: fafb left vs right, fafb vs hemibrain, and fafb vs malecns (reported only, as it includes sex differences). Between animals the other copy's threshold is scaled by the median type-pair total ratio (hemibrain/fafb 2.0, malecns/fafb 1.75), a proxy for how many more synapses it records per connection.
 - **Result at τ = 10:** only 1.0–4.3% of recorded type pairs have no synapse at all in the other copy. 21–37% are present but below τ. The count is a lower bound on missed positives only if the copies share their true wiring; biological differences also count as discrepancies.
 
-Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the integration notebook): fafb `cell_type` ↔ malecns `flywire_type` only, compound values merged; 95.0% of fafb and 95.8% of malecns brain neurons are in a matched group. Summary in `reports/type_mapping_coverage.md`.
+Cross-dataset type mapping (course week 3, `src/type_mapping.py`, also in the integration notebook): fafb `cell_type` ↔ malecns `flywire_type` only, compound values merged; 95.6% of fafb and 95.4% of malecns brain neurons are in a matched group. Summary in `reports/type_mapping_coverage.md`.
 
 Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 
@@ -241,3 +265,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-15: fold benchmark: seed ranges and q option in benchmark_folds.py, merged summaries; λ = 10⁻² and type-grouped inner CV over 3 seeds; q = 0.5.
 - 2026-10-15: region rule evidence for D15: counting measure (FAFB counts connections) and labels outside named neuropils, both datasets.
 - 2026-10-15: region rule switched to the group's D15 proposal: labels outside named neuropils can win (MaleCNS `unspecified` labels, FAFB `None` as `UNASGD`); the two proposed neuropil-table rows passed from `src/eda_e.py`. No CX-class neuron (the Project 5 roster) changes region; one neuron whose region was FB now has CentralBrain-unspecified (E7 by region: 2,658 → 2,657).
+- 2026-11-04: eda_shared and config v0.2.0; correction functions in the fetch code; MaleCNS region from neuPrint per-ROI counts; the 7 FAFB rows dropped; `nt_i` from `nt_type_corrected`; Step 0 rerun (23 of 23 reference values); E figures and integration notebook rerun, old ones kept; numbers for the lock note in `scripts/lock_note_numbers.py` (no model fitted). String columns in Arrow memory (`src/__init__.py`).

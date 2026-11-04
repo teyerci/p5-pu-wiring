@@ -7,20 +7,25 @@ from pathlib import Path
 from typing import Callable
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 log = logging.getLogger(__name__)
 
 
 def cached(path: Path, fetch_fn: Callable[[], pd.DataFrame],
            validate_fn: Callable[[pd.DataFrame], None],
-           force_refresh: bool = False) -> pd.DataFrame:
+           force_refresh: bool = False, columns=None) -> pd.DataFrame:
     """Read `path` if it exists; otherwise fetch, validate, write and return.
 
-    Only force_refresh=True refetches. The cached table is validated on the
-    way in, so a file on disk has always passed the checks.
+    Only force_refresh=True refetches, or a file lacking one of `columns` (a cache
+    from an older schema; a cache hit is not validated again). The cached table is
+    validated on the way in, so a file on disk has always passed the checks.
     """
     path = Path(path)
-    if path.exists() and not force_refresh:
+    stale = columns is not None and path.exists() and not set(columns) <= set(pq.read_schema(path).names)
+    if stale:
+        log.info("cache from an older schema, rebuilding: %s", path.name)
+    if path.exists() and not force_refresh and not stale:
         log.info("cache hit: %s", path.name)
         return pd.read_parquet(path)
     start = time.perf_counter()

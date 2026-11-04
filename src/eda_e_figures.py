@@ -21,7 +21,7 @@ def _cap(ds, release, tau, population, extra=""):
 
 
 DS_COLOR = {"fafb": SERIES[0], "malecns": SERIES[1]}
-BRAIN_NOTE = {"fafb": "", "malecns": "Brain part only: in_brain neurons, edges among them, brain neuropils."}
+BRAIN_NOTE = {"fafb": "", "malecns": "Brain part only, cropped by synapse location: brain neurons, brain synapses."}
 
 
 def _tags(data):

@@ -29,7 +29,8 @@ import pyarrow.ipc as ipc
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 from src import fetch_fafb, fetch_malecns                     # noqa: E402
-from src.eda_e import MALECNS_NERVE_CORD, OPTIC, base_neuropil  # noqa: E402
+from eda_shared.eda_helpers import MALECNS_NERVE_CORD  # noqa: E402
+from src.eda_e import OPTIC, base_neuropil  # noqa: E402
 
 OUT = REPO / "reports" / "region_rules.json"
 UNSPEC = "unspecified"

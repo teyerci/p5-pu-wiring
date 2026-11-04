@@ -1,0 +1,420 @@
+{
+ "fafb_neurons": {
+  "total": 139255,
+  "annotation_rows": 139248,
+  "kept": 139241,
+  "dropped": 7,
+  "added": 14
+ },
+ "fafb_super_class": {
+  "optic": 77537,
+  "central": 32383,
+  "sensory": 16904,
+  "visual_projection": 8038,
+  "ascending": 1750,
+  "descending": 1303,
+  "sensory_ascending": 612,
+  "visual_centrifugal": 524,
+  "motor": 110,
+  "endocrine": 80,
+  "unknown": 14
+ },
+ "fafb_edges": {
+  "tau1": 15091983,
+  "ge5": 2700513
+ },
+ "fafb_region": {
+  "per_region": {
+   "ME_R": 29012,
+   "ME_L": 28691,
+   "LO_L": 8027,
+   "LOP_R": 7033,
+   "LO_R": 6071,
+   "GNG": 5954,
+   "LOP_L": 5436,
+   "LA_L": 5083,
+   "LA_R": 4403,
+   "AVLP_R": 2093,
+   "MB_ML_L": 2047,
+   "SMP_R": 1970,
+   "SLP_R": 1939,
+   "FB": 1896,
+   "SMP_L": 1891,
+   "SLP_L": 1857,
+   "AVLP_L": 1772,
+   "MB_ML_R": 1771,
+   "AL_L": 1615,
+   "AL_R": 1296,
+   "SAD": 1042,
+   "PVLP_L": 992,
+   "PLP_L": 986,
+   "LH_L": 956,
+   "LH_R": 878,
+   "PLP_R": 840,
+   "SPS_R": 816,
+   "IPS_L": 814,
+   "PVLP_R": 756,
+   "IPS_R": 698,
+   "SPS_L": 637,
+   "MB_CA_L": 605,
+   "MB_CA_R": 567,
+   "CRE_R": 545,
+   "PRW": 539,
+   "LAL_R": 483,
+   "LAL_L": 477,
+   "AOTU_R": 467,
+   "ICL_R": 453,
+   "AOTU_L": 449,
+   "ICL_L": 446,
+   "CRE_L": 430,
+   "EB": 397,
+   "AMMC_R": 349,
+   "OCG": 314,
+   "unknown": 281,
+   "AMMC_L": 267,
+   "WED_R": 238,
+   "SIP_R": 228,
+   "VES_L": 224,
+   "NO": 224,
+   "VES_R": 222,
+   "MB_VL_R": 197,
+   "SIP_L": 165,
+   "SCL_R": 161,
+   "SCL_L": 157,
+   "IB_R": 156,
+   "IB_L": 153,
+   "FLA_R": 139,
+   "FLA_L": 116,
+   "WED_L": 108,
+   "PB": 100,
+   "ATL_L": 51,
+   "GOR_L": 48,
+   "BU_R": 34,
+   "GOR_R": 34,
+   "MB_PED_L": 30,
+   "MB_PED_R": 29,
+   "ATL_R": 27,
+   "BU_L": 20,
+   "MB_VL_L": 12,
+   "AME_L": 10,
+   "GA_L": 9,
+   "GA_R": 6,
+   "AME_R": 5,
+   "EPA_L": 5,
+   "EPA_R": 4,
+   "CAN_L": 2
+  },
+  "ties": 232,
+  "unknown": 281
+ },
+ "malecns_brain": {
+  "neurons_in": 165122,
+  "neurons_kept": 144414,
+  "neurons_dropped": 20708,
+  "ascending_kept": 1841,
+  "sensory_ascending_kept": 534,
+  "region_changed": 0,
+  "region_ties": 76,
+  "edgeroi_syn_brain": 99982458,
+  "edgeroi_syn_brain_unkept": 0,
+  "edgeroi_syn_nerve_cord": 24041864,
+  "edgeroi_syn_no_location": 251,
+  "edges_tau1": 21706010,
+  "edges_ge5": 5143528,
+  "synapses_tau1": 99982458
+ },
+ "malecns_super_class_brain": {
+  "optic": 89388,
+  "central": 32160,
+  "visual_projection": 9202,
+  "sensory": 8918,
+  "ascending": 1841,
+  "descending": 1312,
+  "visual_centrifugal": 563,
+  "sensory_ascending": 534,
+  "unknown": 302,
+  "motor": 107,
+  "endocrine": 71,
+  "efferent": 16
+ },
+ "malecns_region": {
+  "per_region": {
+   "ME(R)": 31040,
+   "ME(L)": 29251,
+   "LO(L)": 10403,
+   "LO(R)": 9279,
+   "LOP(R)": 8541,
+   "LOP(L)": 8105,
+   "GNG": 5370,
+   "AL(R)": 2079,
+   "SLP(L)": 2070,
+   "SLP(R)": 1970,
+   "FB": 1886,
+   "AVLP(R)": 1817,
+   "AVLP(L)": 1805,
+   "SMP(R)": 1575,
+   "PVLP(L)": 1511,
+   "SMP(L)": 1472,
+   "SAD": 1427,
+   "PVLP(R)": 1393,
+   "AL(L)": 1327,
+   "PLP(L)": 1275,
+   "PLP(R)": 1145,
+   "LA(R)": 1077,
+   "gL(L)": 882,
+   "aL(R)": 846,
+   "gL(R)": 833,
+   "LH(R)": 799,
+   "LH(L)": 742,
+   "LA(L)": 665,
+   "LAL(L)": 626,
+   "SPS(L)": 610,
+   "SPS(R)": 610,
+   "AOTU(R)": 589,
+   "WED(R)": 571,
+   "AOTU(L)": 568,
+   "aL(L)": 561,
+   "WED(L)": 553,
+   "SIP(R)": 551,
+   "SIP(L)": 540,
+   "IB": 527,
+   "LAL(R)": 496,
+   "CentralBrain-unspecified": 485,
+   "ICL(L)": 461,
+   "b'L(L)": 424,
+   "EB": 419,
+   "PRW": 394,
+   "CRE(L)": 388,
+   "bL(L)": 386,
+   "ICL(R)": 385,
+   "b'L(R)": 368,
+   "IPS(R)": 359,
+   "Optic-unspecified(L)": 359,
+   "VES(R)": 354,
+   "VES(L)": 350,
+   "CRE(R)": 350,
+   "IPS(L)": 324,
+   "NO": 265,
+   "SCL(L)": 183,
+   "SCL(R)": 173,
+   "bL(R)": 98,
+   "PB": 87,
+   "BU(L)": 52,
+   "FLA(L)": 46,
+   "BU(R)": 45,
+   "FLA(R)": 39,
+   "Optic-unspecified(R)": 37,
+   "ATL(L)": 32,
+   "AB(R)": 31,
+   "GOR(R)": 26,
+   "EPA(L)": 19,
+   "AME(R)": 15,
+   "ATL(R)": 15,
+   "a'L(R)": 13,
+   "GOR(L)": 11,
+   "CA(R)": 9,
+   "EPA(R)": 7,
+   "CA(L)": 6,
+   "PED(R)": 5,
+   "a'L(L)": 4,
+   "CAN(L)": 1,
+   "AB(L)": 1,
+   "CAN(R)": 1
+  },
+  "unknown_in_all_traced": 20708
+ },
+ "self_connections": {
+  "fafb": 0,
+  "malecns": 101
+ },
+ "central_population": {
+  "fafb": 45203,
+  "malecns": 45642
+ },
+ "transmitter": [
+  {
+   "dataset": "fafb",
+   "nt_correction_source": "known_nt",
+   "rows": 77169,
+   "changed": 18513
+  },
+  {
+   "dataset": "fafb",
+   "nt_correction_source": "predicted",
+   "rows": 62086,
+   "changed": 0
+  },
+  {
+   "dataset": "malecns",
+   "nt_correction_source": "kc_override",
+   "rows": 4064,
+   "changed": 4064
+  },
+  {
+   "dataset": "malecns",
+   "nt_correction_source": "predicted",
+   "rows": 161058,
+   "changed": 0
+  }
+ ],
+ "kenyon_types": [
+  {
+   "dataset": "fafb",
+   "cell_type": "KCa'b'-ap1",
+   "neurons": 1
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCab",
+   "neurons": 1643
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCab-p",
+   "neurons": 128
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCapbp-ap1",
+   "neurons": 280
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCapbp-ap2",
+   "neurons": 298
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCapbp-m",
+   "neurons": 338
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCg-d",
+   "neurons": 295
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCg-m",
+   "neurons": 2189
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCg-s1",
+   "neurons": 2
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCg-s2",
+   "neurons": 2
+  },
+  {
+   "dataset": "fafb",
+   "cell_type": "KCg-s3",
+   "neurons": 1
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KC",
+   "neurons": 2
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCa'b'-ap1",
+   "neurons": 199
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCa'b'-ap2",
+   "neurons": 291
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCa'b'-m",
+   "neurons": 205
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCab-c",
+   "neurons": 488
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCab-m",
+   "neurons": 536
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCab-p",
+   "neurons": 129
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCab-s",
+   "neurons": 657
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg",
+   "neurons": 1
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-d",
+   "neurons": 206
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-m",
+   "neurons": 1342
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-s1",
+   "neurons": 2
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-s2",
+   "neurons": 2
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-s3",
+   "neurons": 2
+  },
+  {
+   "dataset": "malecns",
+   "cell_type": "KCg-s4",
+   "neurons": 2
+  }
+ ],
+ "fafb_kenyon_corrected_ach": 5177,
+ "fafb_kenyon_total": 5177,
+ "fafb_dopamine": {
+  "before": 5909,
+  "after": 638
+ },
+ "cx_roster": {
+  "neurons": 2875,
+  "nt_before": {
+   "acetylcholine": 1697,
+   "glutamate": 632,
+   "gaba": 336,
+   "serotonin": 147,
+   "dopamine": 61,
+   "octopamine": 1,
+   "unknown": 1
+  },
+  "nt_after": {
+   "acetylcholine": 1787,
+   "glutamate": 648,
+   "gaba": 306,
+   "serotonin": 69,
+   "dopamine": 46,
+   "octopamine": 18,
+   "unknown": 1
+  },
+  "nt_changed": 171
+ }
+}

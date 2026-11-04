@@ -1,5 +1,7 @@
 # Region rule: counting measure and labels outside named neuropils (D15, workstream E)
 
+> **Superseded (2026-11-04).** Shared Data Corrections fixes the rule: `region_from_counts` in `eda_shared`, alphabetical ties, UNASGD never a region, the two unspecified labels valid. Kept as the record of the D15 discussion.
+
 `scripts/region_rules.py` → `reports/region_rules.json`. Context: `add_provisional_flags` with the shared table rejects the MaleCNS labels `CentralBrain-unspecified` and `Optic-unspecified(L/R)`. Group members using different roiInfo fields counted 640 and 761 neurons with such a region. Two questions follow: which count defines "most synapses" (D15), and whether a label outside every named neuropil may be a neuron's region.
 
 Populations: MaleCNS v1.0, the 165,122 Traced neurons, synapse-partner table at confidence 0.5, all partners. FAFB 783: the 139,262 neurons of the cache, FlyWire's per-neuron neuropil counts (the repo's region source). Ties go to the alphabetically first label throughout. The repo's rule (literal, section 2) reproduces the cached `region` column for 100% of neurons in both datasets.

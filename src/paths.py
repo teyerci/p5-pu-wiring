@@ -41,6 +41,8 @@ MALECNS_FILES = {
     "weights": ("connectome-weights-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
     "syn_partners": ("syn-partners-male-cns-v1.0-minconf-0.5.feather", _MALECNS),
 }
+# neuPrint's per-ROI counts, primary ROIs only (scripts/fetch_malecns_roi_counts.py; needs a token).
+MALECNS_ROI_COUNTS = MALECNS_RAW / "neuprint_roi_counts_primary.parquet"
 
 
 # Hemibrain v1.2 public exports (Janelia, CC-BY). The plan pins v1.2.1, which is
