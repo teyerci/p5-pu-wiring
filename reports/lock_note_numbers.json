@@ -36,10 +36,35 @@
   }
  },
  "unrecorded": 7972862,
+ "e5_left_right_central": {
+  "1": 0.3151210402960113,
+  "2": 0.5004328050808009,
+  "3\u20134": 0.6662047575478911,
+  "5\u20139": 0.836881385940317,
+  "10\u201319": 0.9411106164069198,
+  "20\u201349": 0.9789166919679237,
+  "50+": 0.9895335548402625
+ },
+ "roster_super_class": {
+  "central": 2875
+ },
+ "sampling_tau10": {
+  "per_positive": 20,
+  "seed": 0,
+  "rate": 0.07806211557445517,
+  "unlabelled": 8230625,
+  "weighted_below_tau": 258153.39299610895,
+  "weighted_unrecorded": 7985576.55544747
+ },
  "missing": {
   "no_output_in_cx": 37,
   "no_input_in_cx": 2,
-  "neither": 2
+  "neither": 2,
+  "positives_into_no_output": {
+   "5": 38,
+   "10": 3,
+   "31": 0
+  }
  },
  "nt": {
   "before": {
@@ -103,7 +128,16 @@
    ],
    "type_pairs": 506,
    "source_groups": 50,
-   "types": 55
+   "types": 55,
+   "neurons": 110,
+   "same_side": {
+    "pairs": 244,
+    "share": 0.639344262295082
+   },
+   "cross_side": {
+    "pairs": 262,
+    "share": 0.648854961832061
+   }
   },
   "10": {
    "share": 0.6292134831460674,
@@ -113,7 +147,16 @@
    ],
    "type_pairs": 267,
    "source_groups": 45,
-   "types": 55
+   "types": 55,
+   "neurons": 110,
+   "same_side": {
+    "pairs": 123,
+    "share": 0.6341463414634146
+   },
+   "cross_side": {
+    "pairs": 144,
+    "share": 0.625
+   }
   },
   "31": {
    "share": 0.5490196078431373,
@@ -123,7 +166,16 @@
    ],
    "type_pairs": 51,
    "source_groups": 14,
-   "types": 55
+   "types": 55,
+   "neurons": 110,
+   "same_side": {
+    "pairs": 24,
+    "share": 0.5833333333333334
+   },
+   "cross_side": {
+    "pairs": 27,
+    "share": 0.5185185185185185
+   }
   }
  },
  "c_hemibrain": {

@@ -1,10 +1,11 @@
 """Numbers cited by the lock note, from the corrected tables. No model is fitted here.
 
-Writes reports/lock_note_numbers.json. c estimate: recurrence of recorded type pairs
-across copies (src/discrepancy.py). If a recorded connection were recorded in the other
-copy independently with probability c, and the copies shared their wiring at type level,
-the share recorded in the other copy would estimate c. Biological differences push it
-down, correlated misses push it up. Intervals resample source type groups.
+Writes reports/lock_note_numbers.json. Primary c proxy: mirror recurrence of labels at
+neuron-pair level (`mirror_pairs`). Checks: recurrence of recorded type pairs across sides
+and copies (src/discrepancy.py). If a recorded connection were recorded in the other copy
+independently with probability c, and the copies shared their wiring, the share recorded
+in the other copy would estimate c. Biological differences and counts near the threshold
+push it down, correlated misses push it up. Intervals resample source type groups.
 """
 import json
 import sys
@@ -19,8 +20,8 @@ import pandas as pd  # noqa: E402
 from eda_shared.corrections import fafb_neuropil_counts, region_from_counts  # noqa: E402
 from src import fetch_fafb, fetch_hemibrain, fetch_malecns  # noqa: E402
 from src.discrepancy import scale, status, type_pair_table  # noqa: E402
-from src.eda_e import flags, group_key, match_groups  # noqa: E402
-from src.pairs import cx_roster, region_pair_counts  # noqa: E402
+from src.eda_e import e5_compute, flags, group_key, match_groups  # noqa: E402
+from src.pairs import cx_roster, region_pair_counts, sample_pairs  # noqa: E402
 
 B, SEED = 2000, 0
 fn, fer = fetch_fafb.load_neurons(), fetch_fafb.load_edgeroi()
@@ -69,7 +70,12 @@ def mirror_pairs(tau):
     other = pd.MultiIndex.from_arrays([kept.index.get_level_values(0).map(mirror), kept.index.get_level_values(1).map(mirror)])
     hit = ps.reindex(other).fillna(0).to_numpy() >= tau
     src = one.set_index("neuron_id")["cell_type"].astype(str).reindex(kept.index.get_level_values(0)).to_numpy()
-    return boot([pd.DataFrame({"src": src, "hit": hit}).groupby("src")["hit"].agg(["sum", "size"])]) | {"types": len(mirror) // 2}
+    side = one.set_index("neuron_id")["side"].astype(str)
+    same = side.reindex(kept.index.get_level_values(0)).to_numpy() == side.reindex(kept.index.get_level_values(1)).to_numpy()
+    return boot([pd.DataFrame({"src": src, "hit": hit}).groupby("src")["hit"].agg(["sum", "size"])]) | {
+        "types": len(mirror) // 2, "neurons": len(mirror),
+        "same_side": {"pairs": int(same.sum()), "share": float(hit[same].mean())},
+        "cross_side": {"pairs": int((~same).sum()), "share": float(hit[~same].mean())}}
 
 
 def between(other_n, other_er, fafb_col, other_col, tau=10):
@@ -97,6 +103,9 @@ base = fl["region"].astype(str).str.replace(r"_[LR]$", "", regex=True)
 hn, her = fetch_hemibrain.load_neurons(), fetch_hemibrain.load_edgeroi()
 mn, _, mer, _ = fetch_malecns.load_brain()
 groups = cx["cell_type"].where(cx["cell_type"].notna() & cx["side"].isin(["left", "right"]))
+lr_bins = e5_compute(fn, fetch_fafb.load_edges())[0]["central"]["share"]
+sample = sample_pairs(ids, ps, tau=10, scheme="uniform", per_positive=20, seed=SEED)
+weighted = sample.groupby("stratum")["weight"].sum()
 
 stats = {
     "roster": {"neurons": len(cx), "types": int(cx["cell_type"].nunique()), "ordered_pairs": n_pairs,
@@ -107,8 +116,13 @@ stats = {
     "labels": {str(t): {"positives": int((ps >= t).sum()), "prevalence": float((ps >= t).sum() / n_pairs),
                         "below_tau": int(((ps >= 1) & (ps < t)).sum())} for t in [1, 5, 10, 31]},
     "unrecorded": int(n_pairs - len(ps)),
+    "e5_left_right_central": lr_bins.to_dict(),
+    "roster_super_class": cx["super_class"].astype(str).value_counts().to_dict(),
+    "sampling_tau10": {"per_positive": 20, "seed": SEED, "rate": sample.attrs["rate"], "unlabelled": sample.attrs["unlabelled"],
+                       "weighted_below_tau": float(weighted["below_tau"]), "weighted_unrecorded": float(weighted["unrecorded"])},
     "missing": {"no_output_in_cx": int((~pd.Index(ids).isin(out_any)).sum()), "no_input_in_cx": int((~pd.Index(ids).isin(in_any)).sum()),
-                "neither": int(((~pd.Index(ids).isin(out_any)) & (~pd.Index(ids).isin(in_any))).sum())},
+                "neither": int(((~pd.Index(ids).isin(out_any)) & (~pd.Index(ids).isin(in_any))).sum()),
+                "positives_into_no_output": {str(t): int(ps[ps >= t].index.get_level_values(1).isin(set(pd.Index(ids)) - out_any).sum()) for t in [5, 10, 31]}},
     "nt": {"before": cx["nt_type"].value_counts().loc[lambda s: s > 0].to_dict(),
            "after": cx["nt_type_corrected"].value_counts().loc[lambda s: s > 0].to_dict(),
            "changed": int((cx["nt_type"].astype(str) != cx["nt_type_corrected"].astype(str)).sum()),
