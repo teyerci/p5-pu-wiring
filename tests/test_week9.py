@@ -47,6 +47,21 @@ def test_sparse_pu_fit_matches_the_numpy_pu_and_the_naive_at_c_one():
     assert np.allclose(one.predict_proba(X), sklearn_fit(X, s, a, lam).predict_proba(X)[:, 1], atol=1e-5)
 
 
+def test_pu_warm_start_from_naive_reaches_the_same_fit():
+    from scipy import sparse
+    from src.week9 import naive_start
+    rng = np.random.default_rng(3)
+    X = sparse.csr_matrix(rng.normal(size=(5000, 4)))
+    y = rng.random(5000) < 1 / (1 + np.exp(-(X @ np.array([1.0, -0.5, 0.2, 0.0]) - 3)))
+    s = (y & (rng.random(5000) < 0.6)).astype(float)
+    a = rng.choice([1.0, 12.8], size=5000)
+    for lam in (1e-2, 1e-5):
+        cold = PUFit(0.6, lam).fit(X, s, a)
+        warm = PUFit(0.6, lam).fit(X, s, a, w0=naive_start(sklearn_fit(X, s, a, lam), 0.6))
+        assert warm.converged_ and np.allclose(warm.predict_proba(X), cold.predict_proba(X), atol=1e-6)
+        assert warm.n_iter_ <= cold.n_iter_
+
+
 def test_lambda_views_share_folds_and_reduce_to_kfold():
     from src.benchmark import select_lambda_kfold, select_lambda_views
     rng = np.random.default_rng(1)

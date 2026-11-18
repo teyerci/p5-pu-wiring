@@ -53,7 +53,7 @@ for name in names:
             if (seed, fold) in done:
                 continue
             t = time.time()
-            r = benchmark_fold(neurons, er, ids, q, mode, seed=seed, fold=fold, tau=TAU, per_positive=PER_POSITIVE, n_folds=N_FOLDS)
+            r = benchmark_fold(neurons, er, ids, q, mode, seed=seed, fold=fold, tau=TAU, per_positive=PER_POSITIVE, n_folds=N_FOLDS, verbose=True)
             r["seconds"] = round(time.time() - t, 1)
             results.append(r)
             path.write_text(json.dumps(results, indent=1, default=float))

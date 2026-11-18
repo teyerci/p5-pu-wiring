@@ -76,7 +76,8 @@ class PUFit:
     def __init__(self, c: float, lam: float):
         self.c, self.lam = c, lam
 
-    def fit(self, X, s, a):
+    def fit(self, X, s, a, w0=None):
+        """`w0` (coefficients, then intercept) is a starting point only: the risk is convex."""
         s, a = np.asarray(s, float), np.asarray(a, float)
         self.pi_ = class_prior(s, a, self.c)
         wx, wp = a / a.sum(), a * s / (a * s).sum()
@@ -89,7 +90,8 @@ class PUFit:
             grad = np.append(X.T @ (wx * p) - self.pi_ * cp + self.lam * w[:-1], wx @ p - self.pi_)
             return value, grad
 
-        w0 = np.append(np.zeros(X.shape[1]), np.log(self.pi_ / (1 - self.pi_)))
+        if w0 is None:
+            w0 = np.append(np.zeros(X.shape[1]), np.log(self.pi_ / (1 - self.pi_)))
         r = minimize(risk, w0, jac=True, method="L-BFGS-B", options={"maxiter": 20000, "gtol": 1e-10, "ftol": 1e-15})
         self.coef_, self.intercept_, self.n_iter_, self.converged_ = r.x[:-1], float(r.x[-1]), int(r.nit), bool(r.success)
         self.max_grad_, self.message_ = float(np.max(np.abs(r.jac))), str(r.message)
@@ -113,13 +115,21 @@ def missed_given_unlabelled(g, c: float) -> np.ndarray:
     return np.clip((1 - c) / c * g / np.maximum(1 - g, 1e-12), 0.0, 1.0)
 
 
-def _pu_predictor(c, log: list | None = None):
-    """Fit function for `select_lambda_views`; appends (λ, converged) of each inner fit to `log`."""
+def naive_start(m, c: float) -> np.ndarray:
+    """PU starting point from a naive fit: g ≈ c f, so f's intercept is about g's minus ln c."""
+    return np.append(m.coef_[0], m.intercept_[0] - np.log(c))
+
+
+def _joint_predictor(c: float, log: list):
+    """Fit function for `select_lambda_views` that fits naive and, for c < 1, PU warm-started from it;
+    predictions are (naive, PU) pairs. Appends (λ, PU converged) to `log`."""
     def fit(X, s, a, lam):
-        m = PUFit(c, lam).fit(X, s, a)
-        if log is not None:
-            log.append((lam, m.converged_))
-        return m.predict_proba
+        m = sklearn_fit(X, s, a, lam)
+        if c >= 1:
+            return lambda Z: (m.predict_proba(Z)[:, 1], None)
+        pu = PUFit(c, lam).fit(X, s, a, w0=naive_start(m, c))
+        log.append((lam, pu.converged_))
+        return lambda Z: (m.predict_proba(Z)[:, 1], pu.predict_proba(Z))
     return fit
 
 
@@ -131,12 +141,18 @@ def evaluate(y, p, a) -> dict:
 
 
 def benchmark_fold(neurons, edgeroi_roster, ids, q: float, mode: str = "synapse", seed: int = 0, fold: int = 0,
-                   tau: int = 10, per_positive: float = 20, n_folds: int = 5, grid=LAMBDA_GRID, keep_scores: bool = False) -> dict:
+                   tau: int = 10, per_positive: float = 20, n_folds: int = 5, grid=LAMBDA_GRID, keep_scores: bool = False, verbose: bool = False) -> dict:
     if not 0 < q <= 1:
         raise ValueError("q must lie in (0, 1]")
     if not 0 <= fold < n_folds:
         raise ValueError("fold must lie in [0, n_folds)")
     clock = [time.perf_counter()]
+
+    def tick(stage):
+        clock.append(time.perf_counter())
+        if verbose:
+            print(f"  {stage} {clock[-1] - clock[-2]:.0f} s", flush=True)
+
     truth = region_pair_counts(edgeroi_roster, ids)
     er = thin_rows(edgeroi_roster, q, mode, seed) if q < 1 else edgeroi_roster
     seen = region_pair_counts(er, ids)
@@ -170,20 +186,19 @@ def benchmark_fold(neurons, edgeroi_roster, ids, q: float, mode: str = "synapse"
         lo, hi = mirror_share_interval(seen, mirror, tau, roster.set_index("neuron_id")["cell_type"], train_sources, seed=seed)
         c_mirror["interval"] = [lo, hi]
         c_mirror["full_graph_share"] = mirror_share(truth, mirror, tau, sources=train_sources)["share"]
-    views = {"naive": None} | {k: (lambda f, c=c: np.minimum(f, c)) for k, c in cs.items()}
-    clock.append(time.perf_counter())
-    sel = select_lambda_views(Xtr, s_tr, a_tr, inner_g, views, grid=grid, n_inner=3, seed=seed, fit=_sklearn_predictor)
-    clock.append(time.perf_counter())
-    inner_log = []
+    # one inner pass: at each fold and λ naive is fitted, then PU from naive's solution (same folds, same rule)
+    views = {"naive": lambda f: f[0]} | {k: (lambda f, c=c: np.minimum(f[0], c)) for k, c in cs.items()}
     if c_train < 1:
-        sel |= select_lambda_views(Xtr, s_tr, a_tr, inner_g, {"pu": lambda f: c_train * f}, grid=grid, n_inner=3, seed=seed,
-                                   fit=_pu_predictor(c_train, inner_log))
-    else:                                    # c = 1: the PU objective is the naive one, so is its λ choice
+        views["pu"] = lambda f: c_train * f[1]
+    inner_log = []
+    tick("features")
+    sel = select_lambda_views(Xtr, s_tr, a_tr, inner_g, views, grid=grid, n_inner=3, seed=seed, fit=_joint_predictor(c_train, inner_log))
+    if c_train >= 1:                         # c = 1: the PU objective is the naive one, so is its λ choice
         sel["pu"] = sel["naive"]
-    clock.append(time.perf_counter())
-    pu = PUFit(c_train, sel["pu"][0]).fit(Xtr, s_tr, a_tr)
-    fits = {lam: sklearn_fit(Xtr, s_tr, a_tr, lam) for lam in {v[0] for k, v in sel.items() if k != "pu"}}
-    clock.append(time.perf_counter())
+    tick("inner CV")
+    fits = {lam: sklearn_fit(Xtr, s_tr, a_tr, lam) for lam in {v[0] for v in sel.values()}}
+    pu = PUFit(c_train, sel["pu"][0]).fit(Xtr, s_tr, a_tr, w0=naive_start(fits[sel["pu"][0]], c_train))
+    tick("final fits")
     m = fits[sel["naive"][0]]
     f = m.predict_proba(Xte)[:, 1]
     f_train = m.predict_proba(Xtr)[:, 1]
@@ -205,7 +220,7 @@ def benchmark_fold(neurons, edgeroi_roster, ids, q: float, mode: str = "synapse"
            "deleted_in_eval": int((pairs["stratum"].to_numpy()[test] == "deleted").sum()),
            # mean-level identity: with an unpenalised intercept, the weighted mean fit equals the weighted label rate
            "train_mean_f": float(np.average(f_train, weights=a_tr)), "train_mean_s": base,
-           "seconds_parts": dict(zip(("features", "naive_cv", "pu_cv", "final_fits"), np.round(np.diff(clock), 1).tolist())),
+           "seconds_parts": dict(zip(("features", "inner_cv", "final_fits"), np.round(np.diff(clock), 1).tolist())),
            "models": {}}
     for name, p in preds.items():
         res = evaluate(yt, p, at)
