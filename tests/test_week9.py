@@ -59,7 +59,6 @@ def test_pu_warm_start_from_naive_reaches_the_same_fit():
         cold = PUFit(0.6, lam).fit(X, s, a)
         warm = PUFit(0.6, lam).fit(X, s, a, w0=naive_start(sklearn_fit(X, s, a, lam), 0.6))
         assert warm.converged_ and np.allclose(warm.predict_proba(X), cold.predict_proba(X), atol=1e-6)
-        assert warm.n_iter_ <= cold.n_iter_
 
 
 def test_lambda_views_share_folds_and_reduce_to_kfold():

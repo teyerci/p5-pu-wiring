@@ -63,11 +63,6 @@ def sklearn_fit(X, s, a, lam: float) -> LogisticRegression:
     return LogisticRegression(C=1.0 / (lam * a.sum()), solver="lbfgs", tol=1e-8, max_iter=10000).fit(X, s, sample_weight=a)
 
 
-def _sklearn_predictor(X, s, a, lam):
-    m = sklearn_fit(X, s, a, lam)
-    return lambda Z: m.predict_proba(Z)[:, 1]
-
-
 class PUFit:
     """The PU risk of src.pu.PULogistic for a (sparse) design, minimised by L-BFGS:
     R(w) = -π E_P[z] + E_X[log(1 + e^z)] + (λ/2)‖w‖², intercept unpenalised, π = P(s=1)/c,
