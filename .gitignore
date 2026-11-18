@@ -7,3 +7,5 @@ data/
 __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
+# review briefs for agents
+.review_w9/

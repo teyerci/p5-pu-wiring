@@ -178,6 +178,113 @@
    }
   }
  },
+ "c_mirror_detail": {
+  "5": {
+   "recorded_pairs": 506,
+   "mirror_recorded": 326,
+   "mirror_zero": 49,
+   "mirror_1_to_tau_minus_1": 131,
+   "by_stratum": {
+    "5-9": {
+     "share": 0.4602510460251046,
+     "ci95": [
+      0.3755721830985915,
+      0.5315985130111525
+     ],
+     "type_pairs": 239,
+     "source_groups": 44
+    },
+    "10-19": {
+     "share": 0.7643312101910829,
+     "ci95": [
+      0.6666666666666666,
+      0.8393937823834196
+     ],
+     "type_pairs": 157,
+     "source_groups": 43
+    },
+    "20-49": {
+     "share": 0.8681318681318682,
+     "ci95": [
+      0.7777777777777778,
+      0.9394030668127054
+     ],
+     "type_pairs": 91,
+     "source_groups": 32
+    },
+    "50+": {
+     "share": 0.8947368421052632,
+     "ci95": [
+      0.6875,
+      1.0
+     ],
+     "type_pairs": 19,
+     "source_groups": 10
+    }
+   }
+  },
+  "10": {
+   "recorded_pairs": 267,
+   "mirror_recorded": 168,
+   "mirror_zero": 13,
+   "mirror_1_to_tau_minus_1": 86,
+   "by_stratum": {
+    "10-19": {
+     "share": 0.5031847133757962,
+     "ci95": [
+      0.3880356283100626,
+      0.6086956521739131
+     ],
+     "type_pairs": 157,
+     "source_groups": 43
+    },
+    "20-49": {
+     "share": 0.7912087912087912,
+     "ci95": [
+      0.6842105263157895,
+      0.8736842105263158
+     ],
+     "type_pairs": 91,
+     "source_groups": 32
+    },
+    "50+": {
+     "share": 0.8947368421052632,
+     "ci95": [
+      0.6875,
+      1.0
+     ],
+     "type_pairs": 19,
+     "source_groups": 10
+    }
+   }
+  },
+  "31": {
+   "recorded_pairs": 51,
+   "mirror_recorded": 28,
+   "mirror_zero": 2,
+   "mirror_1_to_tau_minus_1": 21,
+   "by_stratum": {
+    "31-49": {
+     "share": 0.5,
+     "ci95": [
+      0.32,
+      0.625
+     ],
+     "type_pairs": 32,
+     "source_groups": 13
+    },
+    "50+": {
+     "share": 0.631578947368421,
+     "ci95": [
+      0.3125,
+      0.8571428571428571
+     ],
+     "type_pairs": 19,
+     "source_groups": 10
+    }
+   }
+  }
+ },
  "c_hemibrain": {
   "scale": 2.0,
   "tau_other": 20,

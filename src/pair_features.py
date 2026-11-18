@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from src.eda_e import real_neuropil
 
@@ -138,14 +139,17 @@ def feature_columns(feats: pd.DataFrame, groups) -> list[str]:
     return cols
 
 
-def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str], clip: bool = False):
+def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str], clip: bool = False, sparse: bool = False):
     """Numeric design matrices: one-hot categoricals (levels from train; unseen levels
     in test become all-zero), numerics standardised with train statistics (fold-local).
 
     `clip=True` limits test numerics to the training range before standardising. A rare
     column (e.g. the output fraction in a neuropil almost no training source uses) has a
     tiny training SD, so a held-out neuron that uses it gets an extreme z-score and the
-    linear model extrapolates far outside the data it was fitted on."""
+    linear model extrapolates far outside the data it was fitted on.
+
+    `sparse=True` returns CSR matrices with the same values: the one-hot blocks are
+    mostly zeros, and a dense matrix of all sampled pairs would not fit in memory."""
     cat = [c for c in columns if c in CATEGORICAL]
     num = [c for c in columns if c not in CATEGORICAL]
     levels = {c: sorted(train[c].astype(str).unique()) for c in cat}
@@ -155,13 +159,19 @@ def design(train: pd.DataFrame, test: pd.DataFrame | None, columns: list[str], c
 
     def build(df, limit=False):
         x = df[num].clip(lower=lo, upper=hi, axis=1) if limit else df[num]
-        parts = [((x - mu) / sd).to_numpy(dtype=float)]
+        z = ((x - mu) / sd).to_numpy(dtype=float)
+        parts = [sp.csr_matrix(z) if sparse else z]
         names = list(num)
         for c in cat:
             v = df[c].astype(str).to_numpy()
-            parts.append((v[:, None] == np.asarray(levels[c])[None, :]).astype(float))
+            if sparse:
+                col = pd.Index(levels[c]).get_indexer(v)
+                hit = col >= 0
+                parts.append(sp.csr_matrix((np.ones(hit.sum()), (np.flatnonzero(hit), col[hit])), shape=(len(v), len(levels[c]))))
+            else:
+                parts.append((v[:, None] == np.asarray(levels[c])[None, :]).astype(float))
             names += [f"{c}={lv}" for lv in levels[c]]
-        return np.hstack(parts), names
+        return (sp.hstack(parts, format="csr") if sparse else np.hstack(parts)), names
 
     Xtr, names = build(train)
     Xte = build(test, limit=clip)[0] if test is not None else None

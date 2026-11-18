@@ -81,11 +81,24 @@ def _weighted_log_loss(s, p, a) -> float:
     return float(-np.average(s * np.log(p) + (1 - s) * np.log(1 - p), weights=a))
 
 
-def select_lambda_kfold(X, s, a, groups, grid=LAMBDA_GRID, n_inner=3, seed=0) -> tuple[float, dict, dict]:
+def _naive_predictor(X, s, a, lam):
+    return PULogistic(c=1.0, lam=lam).fit(X, s, a).predict_proba
+
+
+def select_lambda_kfold(X, s, a, groups, grid=LAMBDA_GRID, n_inner=3, seed=0, fit=_naive_predictor) -> tuple[float, dict, dict]:
     """λ by grouped K-fold on training pairs (groups: source neurons), with the one-standard-error
     rule: the largest λ whose mean held-out log-loss for s is within one standard error (over
     folds) of the smallest mean. A steadier choice than `select_lambda` where the loss is flat
-    below the optimum and rises steeply past it. Returns (λ, mean loss per λ, SE per λ)."""
+    below the optimum and rises steeply past it. `fit(X, s, a, λ)` returns a function giving
+    the predicted P(s=1|x); the default is the NumPy naive model. Returns (λ, mean loss per λ, SE per λ)."""
+    return select_lambda_views(X, s, a, groups, {"s": None}, grid, n_inner, seed, fit)["s"]
+
+
+def select_lambda_views(X, s, a, groups, views: dict, grid=LAMBDA_GRID, n_inner=3, seed=0, fit=_naive_predictor) -> dict:
+    """`select_lambda_kfold` for several models built on one fit: `views` maps a name to a function
+    turning the fitted P(s=1|x) into that model's predicted P(s=1|x) (None: unchanged), e.g.
+    naive/c's c · min(f/c, 1) = min(f, c). Each view gets its own λ by the same folds, grid and
+    1-SE rule; the fits are shared. Returns {name: (λ, mean loss per λ, SE per λ)}."""
     uniq = np.unique(groups)
     if n_inner < 2 or n_inner > len(uniq):
         raise ValueError("n_inner must lie in [2, number of groups]")
@@ -93,16 +106,20 @@ def select_lambda_kfold(X, s, a, groups, grid=LAMBDA_GRID, n_inner=3, seed=0) ->
     fold_of = pd.Series(np.empty(len(uniq), int), index=uniq)
     fold_of.iloc[order] = np.arange(len(uniq)) % n_inner
     fold = fold_of.reindex(groups).to_numpy()
-    per = {lam: [] for lam in grid}
+    per = {name: {lam: [] for lam in grid} for name in views}
     for k in range(n_inner):
         val = fold == k
         for lam in grid:
-            m = PULogistic(c=1.0, lam=lam).fit(X[~val], s[~val], a[~val])
-            per[lam].append(_weighted_log_loss(s[val], m.predict_proba(X[val]), a[val]))
-    mean = {lam: float(np.mean(v)) for lam, v in per.items()}
-    se = {lam: float(np.std(v, ddof=1) / np.sqrt(n_inner)) for lam, v in per.items()}
-    best = min(mean, key=mean.get)
-    return max(lam for lam in grid if mean[lam] <= mean[best] + se[best]), mean, se
+            f = fit(X[~val], s[~val], a[~val], lam)(X[val])
+            for name, view in views.items():
+                per[name][lam].append(_weighted_log_loss(s[val], f if view is None else view(f), a[val]))
+    out = {}
+    for name, p in per.items():
+        mean = {lam: float(np.mean(v)) for lam, v in p.items()}
+        se = {lam: float(np.std(v, ddof=1) / np.sqrt(n_inner)) for lam, v in p.items()}
+        best = min(mean, key=mean.get)
+        out[name] = (max(lam for lam in grid if mean[lam] <= mean[best] + se[best]), mean, se)
+    return out
 
 
 def evaluation_pairs(sample, pos_true, still, test_sources) -> pd.DataFrame:

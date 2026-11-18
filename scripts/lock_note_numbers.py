@@ -78,6 +78,27 @@ def mirror_pairs(tau):
         "cross_side": {"pairs": int((~same).sum()), "share": float(hit[~same].mean())}}
 
 
+def mirror_detail(tau):
+    """Feedback 3 and Week 9: what the mirror of a recorded pair has (0 synapses, 1 to τ-1, ≥ τ),
+    and the mirror share by synapse count of the recorded edge (constant-c check)."""
+    typed = cx[cx["cell_type"].notna() & cx["side"].isin(["left", "right"])]
+    n = typed.groupby(["cell_type", "side"], observed=True).size().unstack(fill_value=0)
+    one = typed[typed["cell_type"].isin(n.index[(n["left"] == 1) & (n["right"] == 1)])]
+    mirror = {a: b for _, g in one.groupby("cell_type", observed=True) for a, b in [tuple(g["neuron_id"]), tuple(g["neuron_id"])[::-1]]}
+    kept = ps[ps >= tau]
+    kept = kept[kept.index.get_level_values(0).isin(mirror) & kept.index.get_level_values(1).isin(mirror)]
+    other = pd.MultiIndex.from_arrays([kept.index.get_level_values(0).map(mirror), kept.index.get_level_values(1).map(mirror)])
+    m = ps.reindex(other).fillna(0).to_numpy()
+    src = one.set_index("neuron_id")["cell_type"].astype(str).reindex(kept.index.get_level_values(0)).to_numpy()
+    edges = [tau] + [e for e in (10, 20, 50) if e > tau] + [np.inf]
+    labels = [f"{a}-{int(b) - 1}" if np.isfinite(b) else f"{a}+" for a, b in zip(edges[:-1], edges[1:])]
+    stratum = pd.cut(kept.to_numpy(), bins=edges, right=False, labels=labels)
+    d = pd.DataFrame({"src": src, "hit": m >= tau, "stratum": stratum})
+    return {"recorded_pairs": len(kept), "mirror_recorded": int((m >= tau).sum()),
+            "mirror_zero": int((m == 0).sum()), "mirror_1_to_tau_minus_1": int(((m >= 1) & (m < tau)).sum()),
+            "by_stratum": {lab: boot([g.groupby("src")["hit"].agg(["sum", "size"])]) for lab, g in d.groupby("stratum", observed=True)}}
+
+
 def between(other_n, other_er, fafb_col, other_col, tau=10):
     groups = match_groups(cx[fafb_col], other_n[other_col])
     kf = group_key(cx[fafb_col], groups)
@@ -131,6 +152,7 @@ stats = {
     "homologue_groups": int(cx["cell_type"].nunique() + cx["cell_type"].isna().sum()),
     "c_left_right": {str(t): lr(t) for t in [5, 10, 31]},
     "c_mirror_neuron_pairs": {str(t): mirror_pairs(t) for t in [5, 10, 31]},
+    "c_mirror_detail": {str(t): mirror_detail(t) for t in [5, 10, 31]},
     "c_hemibrain": between(hn, her, "hemibrain_type", "cell_type"),
     "c_malecns_never_for_claims": between(mn, mer, "cell_type", "flywire_type"),
 }
