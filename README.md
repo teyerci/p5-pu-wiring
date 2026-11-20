@@ -8,7 +8,7 @@ Predicting connections in the fly connectome when "no recorded connection" does 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # exact environment: requirements-lock.txt
 cp .env.example .env                           # fill in tokens; .env is gitignored
-.venv/bin/python -m pytest                     # 174 own tests (most for the review gate) + 15 eda_shared tests
+.venv/bin/python -m pytest                     # 236 tests: own (many for the review gate) + eda_shared
 .venv/bin/python scripts/build_fafb_cache.py   # downloads raw files once, builds data/cache/
 .venv/bin/python scripts/build_malecns_cache.py  # same for MaleCNS (8.6 GB download, ~17 GB RAM)
 ```
@@ -26,11 +26,13 @@ src/                   paths, cache helper, validators, fetch functions, summary
                        EDA workstream E, step 15 (pairs.py, discrepancy.py),
                        PU model (pu.py), dropout thinning (dropout.py),
                        leave-pair-out pair features (pair_features.py),
-                       dropout benchmark (benchmark.py)
-scripts/               cache build, week 2 report, notebook generator
+                       dropout benchmark (benchmark.py), week 9 runs (week9.py),
+                       mirror estimate of c (c_estimate.py), A7 check (edges_per_neuron.py)
+scripts/               cache build, week 2 report, notebook generator, week 9 runs and summary
+report/week9/          week 9 report (LaTeX)
 tests/                 tests for src/
 notebooks/00_integration.ipynb
-figures/eda/  reports/
+figures/eda/  figures/week9/  reports/  reports/week9/
 data/raw/  data/cache/ gitignored
 ```
 
@@ -60,7 +62,94 @@ P5's roster stays at 2,875 neurons; the transmitter changes for 171 of them. Mal
 
 Where a section below still states a v0.1.1 number or rule (FAFB rows 139,262, `sensory_ascending` → `sensory`, region counted from `syn-partners`, a local nerve-cord list), this section and `eda_shared/corrections.py` replace it; those sections are kept as the record of week 2.
 
-No naive model is run until the lock note is approved. The benchmarks further down were run before the corrections and before the lock note; they are not evidence for it.
+No naive model was run until the lock note was approved. The benchmarks further down were run before the corrections and before the lock note; they are not evidence for it. The Week 9 runs below are the first that count.
+
+## Week 9: naive result and failure argument
+
+Report: `report/week9/week9_report.tex` (sections 1-2 of the final paper, IEEEtran). Every number in it comes from `reports/week9/` and every figure from `figures/week9/`, both written by the scripts below. Tag: `week9`.
+
+### Lock-note choices in force
+
+The revised lock note (page 1, 5 November; addendum A1-A8, 12 and 18 November) fixes every choice. In short:
+
+| Item | Choice |
+|---|---|
+| Population, labels | FAFB central-complex roster (`cell_class == "CX"`, 2,875 neurons), τ = 10 synapses summed over PB, FB, EB, NO; a pair with 1-9 synapses is unlabelled |
+| Sample | every recorded pair plus about 20 unlabelled pairs per positive, Horvitz-Thompson weights (`sample_pairs`) |
+| Features | identity, cell type, region, degree and spatial groups (`pair_features.py`), built from the training graph only; held-out numerics clipped to the training range; held-out target features from the training graph |
+| Split | 5 folds of homologue groups (238 groups; worksheet D18); seeds 10-14 (the pilot used 0-2), each with its own folds, thinning and sample |
+| Benchmark | truth = the recorded graph; primary: synapse dropout q = 0.7; secondary: connection dropout q = 0.7, synapse dropout q = 0.5; q = 1 is also the real-data run; c = the realised share of training positives still recorded (A2) |
+| Models (A1) | intercept-only baseline; naive: scikit-learn `LogisticRegression` (lbfgs, L2 on the coefficients, C = 1/(λ Σa), sample weights); naive/c = min(g/c, 1); PU: target s/c (convex PU risk), L-BFGS on the same design |
+| λ (A1) | each model its own λ from {10⁻², ..., 10⁻⁷} by 3-fold inner CV over homologue groups on training sources only, scored on s (naive: log-loss of g; naive/c: of min(g, c) on the same inner fits; PU: of c·f), 1-SE rule |
+| Tests (A2, A5) | unit: held-out homologue group, pooled over the 5 seeds; D0 = Brier(naive) − Brier(naive/c), D1 = Brier(naive) − Brier(PU), D2 = Brier(naive/c) − Brier(PU), all against y; two-sided sign test, ties dropped, α = 0.05; Holm over D1 and D2 in the primary condition; D0 its own family; secondary conditions descriptive; equal-weight mean of group D with a bootstrap interval over groups (B = 2,000) |
+| c on real data (A3, A4) | mirror estimate 0.63 (95% interval 0.53-0.71, bootstrap over source cell types), by strength stratum; scenarios 0.53 / 0.63 / 0.78 for expected unrecorded connections |
+| MaleCNS (A7) | not fitted; edges per neuron on shared cell types compared descriptively (`scripts/edges_per_neuron.py`) |
+
+### Stated deviations
+
+- **PU in week 9 (A8).** The assignment forbids numbers from the from-scratch model this week but asks for the H2 test with three models; we fit PU now and report it in the table and the headline figure. Naive, naive/c and D0 are also reported on their own (`fig1_reliability_<condition>_a5`). The derivation of the PU fit and its checks are week 11.
+- **λ per model (A1)** replaces page 1's "same λ for naive and PU".
+- **q = 1:** c = 1, so PU's objective is the naive one; its λ is copied from naive instead of cross-validated, and D1, D2 are not tested there.
+
+### How to rerun
+
+From the FAFB cache (`scripts/build_fafb_cache.py` builds it once; no network after that):
+
+```bash
+.venv/bin/python -m pytest -q tests/test_week9.py tests/test_edges_per_neuron.py
+.venv/bin/python scripts/week9_naive.py synapse_q0.7        # primary; then q1, connection_q0.7, synapse_q0.5
+.venv/bin/python scripts/week9_report_numbers.py            # summary, tests, figures, LaTeX table and numbers
+.venv/bin/python scripts/edges_per_neuron.py                # A7 (needs the MaleCNS cache)
+cd report/week9 && latexmk -pdf week9_report.tex
+```
+
+`week9_naive.py` writes `reports/week9/runs_<condition>.json` after every run and skips runs already there, so an interrupted job resumes. One condition is 25 runs; run conditions one at a time. Each run records its λ per model, the convergence of every PU fit (inner and final) and its time per stage. The summary script uses a condition only when all 25 runs are present.
+
+Seeds are fixed (10-14) and printed; the fold of every roster neuron for every seed is in `reports/week9/splits.csv` for reuse in week 11.
+
+### Outputs
+
+| File | Content |
+|---|---|
+| `reports/week9/runs_<condition>.json` | one record per run: λ, scores against y per model (Brier, AUC, AP, mean level, reliability bins, by true stratum), per-group squared errors, c, mirror estimate, PU fit info, timings |
+| `reports/week9/summary.json` | mean and SD over 25 runs, sign tests, Holm, bootstrap intervals |
+| `figures/week9/fig1_reliability_synapse_q0.7.pdf` | headline: reliability of naive, naive/c and PU, baseline point |
+| `figures/week9/fig1_reliability_<condition>_a5.pdf` | the same as A5 fixes it (no PU) |
+| `figures/week9/fig2_brier_by_condition.pdf` | Brier per model and condition |
+| `report/week9/table_main.tex`, `numbers.tex` | the report's table and numbers |
+| `reports/week9/edges_per_neuron.json` | A7 check |
+
+### Results
+
+Complete so far: synapse dropout q = 0.7 (primary) and q = 1, 25 runs each. Connection dropout q = 0.7 and synapse dropout q = 0.5 are still running; they enter the summary once all 25 runs of each are saved. Source: `reports/week9/summary.json`.
+
+Held-out scores against y, mean (SD) over 25 runs; Brier × 10³; level = per run, weighted mean prediction / weighted true rate, averaged over runs:
+
+| Condition | Model | Brier | Level | AUC |
+|---|---|---|---|---|
+| synapse q = 0.7 (c = 0.656) | baseline | 3.983 (0.956) | 0.68 | 0.5 |
+| | naive | 3.866 (0.918) | 0.68 | 0.923 |
+| | naive/c | 3.899 (0.954) | 1.03 | 0.923 |
+| | PU | 3.910 (0.963) | 1.04 | 0.924 |
+| q = 1 (c = 1) | naive = naive/c = PU | 3.869 (0.921) | 1.04 | 0.928 |
+
+Sign tests in the primary condition, 238 held-out homologue groups (D > 0: the first model scores worse):
+
+| Test | Groups positive | p | Group-mean D × 10³ [95% bootstrap] | Pooled D × 10³ |
+|---|---|---|---|---|
+| D0 naive − naive/c | 106/238 | 0.105 | −0.100 [−0.256, 0.010] | −0.029 |
+| D1 naive − PU | 109/238 | 0.218 (Holm) | −0.088 [−0.235, 0.016] | −0.039 |
+| D2 naive/c − PU | 137/238 | 0.046 (Holm) | 0.011 [−0.005, 0.032] | −0.010 |
+
+Group-mean D weighs every homologue group equally; pooled D weighs every held-out pair as the Brier column does.
+
+In short: the naive model ranks pairs as well as the corrections, but its mean prediction is about c times the true rate. Naive/c and PU restore the level. No significant improvement of either correction over naive on Brier was detected. D2 favours PU over naive/c at α = 0.05 by group count, but the pooled difference has the other sign, so it is not evidence that PU's Brier is lower. As lock note A2 states, the tests are approximate and exploratory: conditional on this graph and the fitted models, error control not validated, refitting uncertainty not included. In the top reliability bin the corrected models still predict too low (0.026 against 0.030), as does the unthinned fit at q = 1, so part of naive's top-bin gap (0.017) is not the factor c. At q = 1 the three models coincide up to solver tolerance. Every PU fit, inner and final, converged.
+
+Real data (q = 1, held-out folds summed, mean over seeds): beside 32,125 recorded connections, the naive model implies about 20,100 unrecorded ones among the unlabelled pairs at c = 0.63 (30,300 at c = 0.53; 9,700 at c = 0.78); a description, not a test.
+
+A7: on 171 shared cell types, FAFB has 9.2 outgoing partners per neuron at τ = 10, MaleCNS 19.7 at τ = 10 (ratio 2.13) and 9.8 at τ = 18 (ratio 1.06) (`reports/week9/edges_per_neuron.json`).
+
+Run time per run on 8 CPU cores: 33 min (primary, with PU), 18 min (q = 1).
 
 ## Schema
 
@@ -266,3 +355,4 @@ Open issues for the group, as one message: `reports/open_issues_for_group.md`.
 - 2026-10-15: region rule evidence for D15: counting measure (FAFB counts connections) and labels outside named neuropils, both datasets.
 - 2026-10-15: region rule switched to the group's D15 proposal: labels outside named neuropils can win (MaleCNS `unspecified` labels, FAFB `None` as `UNASGD`); the two proposed neuropil-table rows passed from `src/eda_e.py`. No CX-class neuron (the Project 5 roster) changes region; one neuron whose region was FB now has CentralBrain-unspecified (E7 by region: 2,658 → 2,657).
 - 2026-11-04: eda_shared and config v0.2.0; correction functions in the fetch code; MaleCNS region from neuPrint per-ROI counts; the 7 FAFB rows dropped; `nt_i` from `nt_type_corrected`; Step 0 rerun (23 of 23 reference values); E figures and integration notebook rerun, old ones kept; numbers for the lock note in `scripts/lock_note_numbers.py` (no model fitted). String columns in Arrow memory (`src/__init__.py`).
+- 2026-11-18: week 9 code (naive, naive/c, PU with per-model λ, group sign tests, mirror interval, A7 check), saved splits for seeds 10-14, report draft; revised lock note with addendum A1-A8.

@@ -109,9 +109,40 @@ def write_numbers(summary):
     for k, v in s["tests"].items():
         if v is None:
             continue
-        out.append(macro(f"Test{k}", f"{v['positive']}/{v['positive'] + v['negative']} groups positive, "
-                                      f"$p={v.get('p_holm', v['p']):.3g}$, mean ${v['mean'] * 1e3:.3f}\\times10^{{-3}}$ "
-                                      f"[{v['ci95'][0] * 1e3:.3f}, {v['ci95'][1] * 1e3:.3f}]"))
+        out.append(macro("TestD" + {"D0": "zero", "D1": "one", "D2": "two"}[k], f"{v['positive']}/{v['positive'] + v['negative']} groups positive, "
+                                      f"$p={v.get('p_holm', v['p']):.3f}$, mean ${v['mean'] * 1e3:.3f}$ "
+                                      f"$[{v['ci95'][0] * 1e3:.3f}, {v['ci95'][1] * 1e3:.3f}]\\times10^{{-3}}$"))
+    # pair-weighted (pooled) difference over all held-out pairs, the quantity the table's Brier means compare
+    for k, (a, b) in CONTRASTS.items():
+        out.append(macro("Pooled" + {"D0": "Dzero", "D1": "Done", "D2": "Dtwo"}[k], f"{s['pooled_d'][k] * 1e3:.3f}"))
+    if "q1" in summary:
+        out.append(macro("TopPQone", f"{summary['q1']['top_bin']['naive']['mean_p']:.3f}"))
+        out.append(macro("TopYQone", f"{summary['q1']['top_bin']['naive']['rate_y']:.3f}"))
+    for m, tag in (("naive", "Naive"), ("naive_c_true", "NaiveC"), ("pu", "PU")):
+        out.append(macro(f"Level{tag}", f"{s['level_ratio'][m][0]:.2f}"))
+        out.append(macro(f"TopP{tag}", f"{s['top_bin'][m]['mean_p']:.3f}"))
+    out.append(macro("TopY", f"{s['top_bin']['naive']['rate_y']:.3f}"))
+    out.append(macro("LevelNaiveSD", f"{s['level_ratio']['naive'][1]:.2f}"))
+    out.append(macro("AUCNaive", f"{s['models']['naive']['auc_y'][0]:.3f}"))
+    out.append(macro("AUCPU", f"{s['models']['pu']['auc_y'][0]:.3f}"))
+    times = "; ".join(f"{CONDITIONS[n]} {summary[n]['minutes']:.0f}~min" for n in CONDITIONS if n in summary)
+    out.append(macro("RunTimes", f"mean over 25 runs on 8 CPU cores, {times}"))
+    if "q1" in summary:
+        q = summary["q1"]
+        out.append(macro("LevelQone", f"{q['level_ratio']['naive'][0]:.2f}"))
+        out.append(macro("BrierQone", f"{q['models']['naive']['brier_y'][0] * 1e3:.3f}"))
+        out.append(macro("AUCQone", f"{q['models']['naive']['auc_y'][0]:.3f}"))
+        out.append(macro("Recorded", f"{q['heldout_recorded']:,.0f}".replace(",", "{,}")))
+        e = q["expected_missed"]
+        for k, tag in (("0.63", "Mid"), ("0.53", "Lo"), ("0.78", "Hi")):
+            out.append(macro(f"Missed{tag}", f"{round(e[k], -2):,.0f}".replace(",", "{,}")))
+    a7 = RUNS / "edges_per_neuron.json"
+    if a7.exists():
+        d = json.loads(a7.read_text())
+        same, scaled = d["settings"]["same_tau"], d["settings"]["scaled_tau"]
+        out.append(macro("EdgesSentence", f"on {d['shared_types']} shared cell types, {d['fafb']['mean']:.1f} outgoing partners per neuron in FAFB "
+                         f"and {same['mean']:.1f} in MaleCNS at $\\tau=10$ (ratio {same['ratio_mean']:.2f}), {scaled['mean']:.1f} at "
+                         f"$\\tau={scaled['tau_malecns']}$ (ratio {scaled['ratio_mean']:.2f})"))
     (TEX / "numbers.tex").write_text("\n".join(out) + "\n")
 
 
@@ -160,6 +191,17 @@ def main():
              "share_f_le_0.05_bound": float(max(0.0, min(1 - r["train_mean_f"] / (r["realised_c_train"] * 0.05) for r in runs))),
              "models": {m: {k: [float(np.mean([r["models"][m][k] for r in runs])), float(np.std([r["models"][m][k] for r in runs], ddof=1))]
                             for k in ("brier_y", "auc_y", "ap_y", "mean_p", "mean_y")} for m in MODELS},
+             # level: per run, weighted mean prediction / weighted true rate on the held-out pairs
+             "level_ratio": {m: [float(np.mean(v := [r["models"][m]["mean_p"] / r["models"][m]["mean_y"] for r in runs])),
+                                 float(np.std(v, ddof=1))] for m in MODELS},
+             # top reliability bin (the 10% of held-out weight with the highest predictions), pooled as in figure 1
+             "top_bin": {m: dict(zip(("mean_p", "rate_y"), (float(a[-1]) for a in pooled_reliability(runs, m)[:2])))
+                         for m in ("naive", "naive_c_true", "pu")},
+             "minutes": float(np.mean([r["seconds"] for r in runs]) / 60),
+             # pooled D: all held-out pairs of all runs, weighted as in the Brier score (groups not equal)
+             "pooled_d": {k: float(sum(sum(g["sse"][a] - g["sse"][b] for g in r["by_source_group"].values()) for r in runs)
+                                   / sum(sum(g["weight"] for g in r["by_source_group"].values()) for r in runs))
+                          for k, (a, b) in CONTRASTS.items()},
              # at c = 1 PU is the naive model with naive's λ: D1 and D2 would test solver noise, so none
              "tests": {k: (None if k != "D0" and all(r["realised_c_train"] == 1 for r in runs) else sign_test(group_d(runs, a, b)))
                        for k, (a, b) in CONTRASTS.items()}}

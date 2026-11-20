@@ -9,3 +9,10 @@ __pycache__/
 .ipynb_checkpoints/
 # review briefs for agents
 .review_w9/
+# LaTeX build files (the PDF is kept)
+report/**/*.aux
+report/**/*.fdb_latexmk
+report/**/*.fls
+report/**/*.log
+# run logs of the week 9 job
+reports/week9/logs/
