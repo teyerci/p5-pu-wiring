@@ -123,27 +123,27 @@ Seeds are fixed (10-14) and printed; the fold of every roster neuron for every s
 
 Complete so far: synapse dropout q = 0.7 (primary) and q = 1, 25 runs each. Connection dropout q = 0.7 and synapse dropout q = 0.5 are still running; they enter the summary once all 25 runs of each are saved. Source: `reports/week9/summary.json`.
 
-Held-out scores against y, mean (SD) over 25 runs; Brier × 10³; level = per run, weighted mean prediction / weighted true rate, averaged over runs:
+Held-out scores against y, mean (SD) over 25 runs; Brier × 10³; level = mean prediction over runs / mean true rate over runs:
 
 | Condition | Model | Brier | Level | AUC |
 |---|---|---|---|---|
-| synapse q = 0.7 (c = 0.656) | baseline | 3.983 (0.956) | 0.68 | 0.5 |
-| | naive | 3.866 (0.918) | 0.68 | 0.923 |
-| | naive/c | 3.899 (0.954) | 1.03 | 0.923 |
-| | PU | 3.910 (0.963) | 1.04 | 0.924 |
-| q = 1 (c = 1) | naive = naive/c = PU | 3.869 (0.921) | 1.04 | 0.928 |
+| synapse q = 0.7 (c = 0.656) | baseline | 3.983 (0.956) | 0.64 | 0.5 |
+| | naive | 3.866 (0.918) | 0.67 | 0.923 |
+| | naive/c | 3.899 (0.954) | 1.02 | 0.923 |
+| | PU | 3.910 (0.963) | 1.02 | 0.924 |
+| q = 1 (c = 1) | naive = naive/c = PU | 3.869 (0.921) | 1.02 | 0.928 |
 
 Sign tests in the primary condition, 238 held-out homologue groups (D > 0: the first model scores worse):
 
 | Test | Groups positive | p | Group-mean D × 10³ [95% bootstrap] | Pooled D × 10³ |
 |---|---|---|---|---|
-| D0 naive − naive/c | 106/238 | 0.105 | −0.100 [−0.256, 0.010] | −0.029 |
-| D1 naive − PU | 109/238 | 0.218 (Holm) | −0.088 [−0.235, 0.016] | −0.039 |
-| D2 naive/c − PU | 137/238 | 0.046 (Holm) | 0.011 [−0.005, 0.032] | −0.010 |
+| D0 naive − naive/c | 106/238 | 0.105 | −0.100 [−0.256, 0.010] | −0.032 |
+| D1 naive − PU | 109/238 | 0.218 (Holm) | −0.088 [−0.235, 0.016] | −0.044 |
+| D2 naive/c − PU | 137/238 | 0.046 (Holm) | 0.011 [−0.005, 0.032] | −0.011 |
 
-Group-mean D weighs every homologue group equally; pooled D weighs every held-out pair as the Brier column does.
+Group-mean D weighs every homologue group equally; pooled D is the difference of the Brier column's means (each run's pairs weighted as in its Brier score).
 
-In short: the naive model ranks pairs as well as the corrections, but its mean prediction is about c times the true rate. Naive/c and PU restore the level. No significant improvement of either correction over naive on Brier was detected. D2 favours PU over naive/c at α = 0.05 by group count, but the pooled difference has the other sign, so it is not evidence that PU's Brier is lower. As lock note A2 states, the tests are approximate and exploratory: conditional on this graph and the fitted models, error control not validated, refitting uncertainty not included. In the top reliability bin the corrected models still predict too low (0.026 against 0.030), as does the unthinned fit at q = 1, so part of naive's top-bin gap (0.017) is not the factor c. At q = 1 the three models coincide up to solver tolerance. Every PU fit, inner and final, converged.
+In short: the naive model ranks pairs as well as the corrections, but its mean prediction is about c times the true rate. Naive/c and PU restore the level. No significant improvement of either correction over naive on Brier was detected. D2 favours PU over naive/c at α = 0.05 by group count, but the pooled difference is negative, so it is not evidence that PU's Brier is lower. As lock note A2 states, the tests are approximate and exploratory: conditional on this graph and the fitted models, error control not validated, refitting uncertainty not included. In the top reliability bin the corrected models still predict too low (0.026 against 0.030), as does the unthinned fit at q = 1, so part of naive's top-bin shortfall (0.017 predicted against 0.030 true) is not the factor c. At q = 1 the three models coincide up to solver tolerance. Every PU fit converged (inner and final at q = 0.7; at q = 1 PU takes naive's λ, so only the final fit).
 
 Real data (q = 1, held-out folds summed, mean over seeds): beside 32,125 recorded connections, the naive model implies about 20,100 unrecorded ones among the unlabelled pairs at c = 0.63 (30,300 at c = 0.53; 9,700 at c = 0.78); a description, not a test.
 

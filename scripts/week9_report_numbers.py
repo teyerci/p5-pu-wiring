@@ -30,6 +30,7 @@ CONDITIONS = {"q1": "no thinning ($q=1$)", "synapse_q0.7": "synapse $q=0.7$ (pri
               "connection_q0.7": "connection $q=0.7$", "synapse_q0.5": "synapse $q=0.5$"}
 MODELS = {"baseline": "baseline", "naive": "naive", "naive_c_true": "naive/$c$", "pu": "PU"}
 CONTRASTS = {"D0": ("naive", "naive_c_true"), "D1": ("naive", "pu"), "D2": ("naive_c_true", "pu")}
+TAG = {"D0": "zero", "D1": "one", "D2": "two"}  # LaTeX macro names cannot hold digits
 COLORS = {"naive": "#2a6fdb", "naive_c_true": "#d9822b", "pu": "#2e9e5b", "baseline": "#555555"}
 B, ALPHA = 2000, 0.05
 SEEDS, FOLDS = range(10, 15), range(5)
@@ -95,6 +96,46 @@ def macro(name, value) -> str:
     return f"\\newcommand{{\\{name}}}{{{value}}}"
 
 
+def fmt_p(p: float) -> str:
+    """p with 3 decimals; below 0.001 as an upper bound, so a small p never prints as 0.000."""
+    return "p<0.001" if p < 0.001 else f"p={p:.3f}"
+
+
+def prose_checks(summary) -> list:
+    """The report states these in fixed prose; return the ones the current numbers no longer support."""
+    s, bad = summary[PRIMARY], []
+    t, b = s["tests"], {m: s["models"][m]["brier_y"][0] for m in MODELS}
+
+    def p_of(k, key):  # the test's p (raw or Holm), or None when the test is missing or every group tied
+        v = t.get(k)
+        return None if v is None else v.get(key)
+
+    d2, p2 = t.get("D2"), p_of("D2", "p_holm")
+    # the sign test is on group counts: "favours PU" needs more groups with naive/c worse (D2 > 0)
+    if not (d2 and p2 is not None and p2 < ALPHA and d2["positive"] > d2["negative"] and d2["mean"] > 0):
+        bad.append("D2 favours PU over naive/c at alpha (Holm), by group count")
+    if not s["pooled_d"]["D2"] < 0:
+        bad.append("pooled D2 is negative")
+    if not (s["pooled_d"]["D0"] < 0 and s["pooled_d"]["D1"] < 0 and t.get("D0") and t.get("D1")
+            and t["D0"]["mean"] < 0 and t["D1"]["mean"] < 0):
+        bad.append("D0 and D1 negative both pooled and as group means")
+    p0, p1 = p_of("D0", "p"), p_of("D1", "p_holm")
+    if p0 is None or p1 is None or p0 < ALPHA or p1 < ALPHA:
+        bad.append("no significant improvement of either correction over naive (D0, D1 tested and not significant)")
+    if not (b["naive"] < min(b["naive_c_true"], b["pu"]) and b["baseline"] > max(b["naive"], b["naive_c_true"], b["pu"])):
+        bad.append("naive has the lowest Brier; every model beats the baseline")
+    # convergence: every reported condition; inner fits must have been recorded where c < 1
+    for n, c in summary.items():
+        if not (c["pu_converged"] and c["pu_inner_checked"] and c["pu_inner_not_converged"] == 0):
+            bad.append(f"every PU fit converged ({n})")
+    tb = s["top_bin"]
+    if not all(tb[m]["mean_p"] < tb[m]["rate_y"] for m in tb):
+        bad.append("the corrected models still predict too low in the top bin")
+    if "q1" in summary and not summary["q1"]["top_bin"]["naive"]["mean_p"] < summary["q1"]["top_bin"]["naive"]["rate_y"]:
+        bad.append("the unthinned fit predicts too low in the top bin")
+    return bad
+
+
 def write_numbers(summary):
     """Numeric macros for the report; prose is written in the .tex itself."""
     s, out = summary[PRIMARY], []
@@ -107,14 +148,14 @@ def write_numbers(summary):
     # on f = g/c, per run; the smallest bound over runs, rounded down
     out.append(macro("PairsBelowFive", f"at least {math.floor(100 * s['share_f_le_0.05_bound']):.0f}\\%"))
     for k, v in s["tests"].items():
-        if v is None:
+        if v is None or v["p"] is None:
             continue
-        out.append(macro("TestD" + {"D0": "zero", "D1": "one", "D2": "two"}[k], f"{v['positive']}/{v['positive'] + v['negative']} groups positive, "
-                                      f"$p={v.get('p_holm', v['p']):.3f}$, mean ${v['mean'] * 1e3:.3f}$ "
-                                      f"$[{v['ci95'][0] * 1e3:.3f}, {v['ci95'][1] * 1e3:.3f}]\\times10^{{-3}}$"))
-    # pair-weighted (pooled) difference over all held-out pairs, the quantity the table's Brier means compare
-    for k, (a, b) in CONTRASTS.items():
-        out.append(macro("Pooled" + {"D0": "Dzero", "D1": "Done", "D2": "Dtwo"}[k], f"{s['pooled_d'][k] * 1e3:.3f}"))
+        out.append(macro("TestD" + TAG[k], f"{v['positive']}/{v['positive'] + v['negative']} groups positive, "
+                                          f"${fmt_p(v.get('p_holm', v['p']))}$, mean ${v['mean'] * 1e3:.3f}$ "
+                                          f"$[{v['ci95'][0] * 1e3:.3f}, {v['ci95'][1] * 1e3:.3f}]\\times10^{{-3}}$"))
+    # difference of the table's Brier means (mean over runs of the per-run difference), in math for the minus sign
+    for k in CONTRASTS:
+        out.append(macro("PooledD" + TAG[k], f"${s['pooled_d'][k] * 1e3:.3f}$"))
     if "q1" in summary:
         out.append(macro("TopPQone", f"{summary['q1']['top_bin']['naive']['mean_p']:.3f}"))
         out.append(macro("TopYQone", f"{summary['q1']['top_bin']['naive']['rate_y']:.3f}"))
@@ -191,22 +232,26 @@ def main():
              "share_f_le_0.05_bound": float(max(0.0, min(1 - r["train_mean_f"] / (r["realised_c_train"] * 0.05) for r in runs))),
              "models": {m: {k: [float(np.mean([r["models"][m][k] for r in runs])), float(np.std([r["models"][m][k] for r in runs], ddof=1))]
                             for k in ("brier_y", "auc_y", "ap_y", "mean_p", "mean_y")} for m in MODELS},
-             # level: per run, weighted mean prediction / weighted true rate on the held-out pairs
-             "level_ratio": {m: [float(np.mean(v := [r["models"][m]["mean_p"] / r["models"][m]["mean_y"] for r in runs])),
-                                 float(np.std(v, ddof=1))] for m in MODELS},
+             # level: mean over runs of the weighted mean prediction / mean over runs of the weighted true rate
+             # (ratio of means; a mean of per-run ratios is biased upward by the spread of the true rate).
+             # Second entry: SD over runs of the per-run ratio, as a spread.
+             "level_ratio": {m: [float(sum(r["models"][m]["mean_p"] for r in runs) / sum(r["models"][m]["mean_y"] for r in runs)),
+                                 float(np.std([r["models"][m]["mean_p"] / r["models"][m]["mean_y"] for r in runs], ddof=1))]
+                             for m in MODELS},
              # top reliability bin (the 10% of held-out weight with the highest predictions), pooled as in figure 1
              "top_bin": {m: dict(zip(("mean_p", "rate_y"), (float(a[-1]) for a in pooled_reliability(runs, m)[:2])))
                          for m in ("naive", "naive_c_true", "pu")},
              "minutes": float(np.mean([r["seconds"] for r in runs]) / 60),
-             # pooled D: all held-out pairs of all runs, weighted as in the Brier score (groups not equal)
-             "pooled_d": {k: float(sum(sum(g["sse"][a] - g["sse"][b] for g in r["by_source_group"].values()) for r in runs)
-                                   / sum(sum(g["weight"] for g in r["by_source_group"].values()) for r in runs))
+             # pooled D: mean over runs of the per-run (pair-weighted) Brier difference, i.e. the difference of
+             # the table's Brier means; groups are not weighted equally, unlike the sign test
+             "pooled_d": {k: float(np.mean([r["models"][a]["brier_y"] - r["models"][b]["brier_y"] for r in runs]))
                           for k, (a, b) in CONTRASTS.items()},
              # at c = 1 PU is the naive model with naive's λ: D1 and D2 would test solver noise, so none
              "tests": {k: (None if k != "D0" and all(r["realised_c_train"] == 1 for r in runs) else sign_test(group_d(runs, a, b)))
                        for k, (a, b) in CONTRASTS.items()}}
         if n == PRIMARY:
-            adj = holm({k: s["tests"][k]["p"] for k in ("D1", "D2")})
+            # a test with every group tied has p = None: it is left out of the Holm family
+            adj = holm({k: s["tests"][k]["p"] for k in ("D1", "D2") if s["tests"][k] and s["tests"][k]["p"] is not None})
             for k, v in adj.items():
                 s["tests"][k]["p_holm"] = v
         mirror = [r["c_mirror_train"] for r in runs if r["c_mirror_train"].get("pairs", 0) > 0]
@@ -255,6 +300,11 @@ def main():
     rows.append(r"\end{tabular}")
     (TEX / "table_main.tex").write_text("\n".join(rows) + "\n")
     write_numbers(summary)
+    bad = prose_checks(summary)
+    if bad:
+        print("The report's fixed prose no longer matches the numbers; edit week9_report.tex and README:\n  - "
+              + "\n  - ".join(bad), file=sys.stderr)
+        sys.exit(1)
     print(json.dumps({n: {"tests": s["tests"], "brier": {m: s["models"][m]["brier_y"] for m in MODELS},
                           "c": s["realised_c_train"], "lambda": s["lambda"]} for n, s in summary.items()}, indent=1))
 
